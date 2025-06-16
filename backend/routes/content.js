@@ -38,4 +38,22 @@ router.post('/submit-answer', async (req, res) => {
 });
 
 
+// =====================================================================
+// ADICIONE ESTA NOVA ROTA NO FINAL DE content.js
+// =====================================================================
+
+// Rota para buscar os detalhes de UMA lição específica
+router.get('/lesson-detail/:lessonId', async (req, res) => {
+    const { lessonId } = req.params;
+    try {
+        const result = await db.query('SELECT * FROM lessons WHERE id = $1', [lessonId]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Lição não encontrada.' });
+        }
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao buscar detalhes da lição.' });
+    }
+});
+
 module.exports = router;

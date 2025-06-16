@@ -182,27 +182,110 @@ async function loadLessons(subjectId) {
     }
 }
 
-// Esta função será chamada quando o aluno clicar em "Iniciar"
-function renderLessonContent(lessonId) {
-    // Esta é a próxima grande funcionalidade a ser construída.
-    // Aqui você buscaria os detalhes da lição (vídeo, texto, questões)
-    // e montaria a interface de aprendizado completa que você descreveu.
-    showView('lesson-view');
-    lessonView.innerHTML = `
-        <button class="back-btn" onclick="history.back()">← Voltar para a lista</button>
-        <h2>Conteúdo da Lição (ID: ${lessonId})</h2>
-        <p>A interface com vídeo, texto, áudio e questões será construída aqui.</p>
-        <p><strong>Próximo passo:</strong> Fazer um fetch para <code>/api/content/lesson-detail/${lessonId}</code> (rota a ser criada no backend) e usar os dados para montar a página dinamicamente.</p>
-    `;
-}
+// =====================================================================
+// COLE ESTE BLOCO NO LUGAR DAS ANTIGAS FUNÇÕES renderLessonContent E addEventListener
+// =====================================================================
 
-// "Ouvinte" de eventos para os botões "Iniciar"
-document.body.addEventListener('click', e => {
+// "Ouvinte" de eventos para os botões "Iniciar" na lista de lições
+document.body.addEventListener('click', async e => {
     if (e.target && e.target.classList.contains('start-lesson-btn')) {
         const lessonId = e.target.dataset.lessonId;
-        renderLessonContent(lessonId);
+        showView('lesson-view');
+        lessonView.innerHTML = `<h2>Carregando lição...</h2>`;
+        
+        try {
+            // Passo 1: Buscar os detalhes da lição no backend
+            const response = await fetch(`${API_URL}/api/content/lesson-detail/${lessonId}`);
+            if (!response.ok) throw new Error('Não foi possível carregar o conteúdo da lição.');
+            
+            const lesson = await response.json();
+
+            // Passo 2: Construir a interface da lição com os dados recebidos
+            lessonView.innerHTML = `
+                <button class="back-btn" onclick="loadLessons(${lesson.subject_id})">← Voltar para Lições</button>
+                
+                <div id="lesson-content-area">
+                    <h2>${lesson.title}</h2>
+                    
+                    <div id="video-container">
+                        <iframe width="100%" height="480" src="${lesson.video_url.replace('watch?v=', 'embed/')}" 
+                                title="YouTube video player" frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen>
+                        </iframe>
+                    </div>
+
+                    <div id="post-video-content" style="display:none;">
+                        <h3>Recursos Adicionais</h3>
+                        <div id="image-container">
+                            <img src="${lesson.image_url}" alt="Imagem da lição" style="max-width: 100%;">
+                        </div>
+                        <div id="audio-container">
+                            <audio controls src="${lesson.audio_url}"></audio>
+                        </div>
+                        <button id="show-text-btn">Ver Explicação Escrita</button>
+                    </div>
+
+                    <div id="text-content" style="display:none;">
+                        <h3>Explicação Detalhada</h3>
+                        <div>${lesson.lesson_text}</div>
+                        <button id="start-quiz-btn">Iniciar Questões</button>
+                    </div>
+
+                    <div id="quiz-content" style="display:none;">
+                        <!-- O quiz será construído aqui -->
+                        <p>O quiz aparecerá aqui em breve!</p>
+                    </div>
+                </div>
+            `;
+            
+            // Passo 3: Adicionar a lógica de interatividade da lição
+            addLessonInteractivity(lesson);
+
+        } catch (error) {
+            lessonView.innerHTML = `<h2>Erro ao carregar.</h2><p>${error.message}</p>`;
+        }
     }
 });
+
+
+function addLessonInteractivity(lesson) {
+    const videoFrame = document.querySelector('#video-container iframe');
+    const postVideoContent = document.getElementById('post-video-content');
+    const showTextBtn = document.getElementById('show-text-btn');
+    const textContent = document.getElementById('text-content');
+    const startQuizBtn = document.getElementById('start-quiz-btn');
+
+    // Lógica para monitorar o vídeo (simplificada)
+    // Uma implementação real requer a API do YouTube/Vimeo para precisão.
+    // Esta é uma simulação baseada em tempo.
+    setTimeout(() => {
+        postVideoContent.style.display = 'block';
+    }, 10000); // Mostra após 10 segundos para simular 80% do vídeo
+
+    showTextBtn.addEventListener('click', () => {
+        textContent.style.display = 'block';
+    });
+
+    startQuizBtn.addEventListener('click', () => {
+        // Futura função que irá construir e iniciar o quiz
+        renderQuiz(lesson);
+    });
+}
+
+function renderQuiz(lesson) {
+    const quizContent = document.getElementById('quiz-content');
+    quizContent.style.display = 'block';
+    quizContent.innerHTML = `
+        <h3>Questão 1 (Treino)</h3>
+        <p>${lesson.q1_text}</p>
+        <div id="timer">Tempo: ${lesson.q1_time}s</div>
+        <div class="options-container">
+            ${lesson.q1_options.map(option => `<button class="option-btn">${option}</button>`).join('')}
+        </div>
+        <p>Funcionalidade completa do quiz (timer, respostas, etc.) a ser implementada.</p>
+    `;
+}
 
 
 function initializeApp() {
