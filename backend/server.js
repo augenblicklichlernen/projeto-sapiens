@@ -1,7 +1,7 @@
 // Importa as ferramentas necessárias
 require('dotenv').config();
 const express = require('express');
-const cors = 'cors';
+const cors = require('cors');
 const db = require('./database'); // Nosso arquivo de conexão com o banco de dados
 const authRoutes = require('./routes/auth');
 const contentRoutes = require('./routes/content');
