@@ -61,4 +61,37 @@ router.post('/lesson', async (req, res) => {
     }
 });
 
+// --- NOVAS ROTAS DE EXCLUSÃO ---
+
+// Rota para excluir uma matéria
+router.delete('/subject/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Primeiro, verificamos se a matéria existe (opcional, mas bom)
+        const subject = await db.query('SELECT * FROM subjects WHERE id = $1', [id]);
+        if (subject.rows.length === 0) {
+            return res.status(404).json({ message: 'Matéria não encontrada.' });
+        }
+        
+        // Excluir a matéria (o banco de dados está configurado para excluir as lições em cascata)
+        await db.query('DELETE FROM subjects WHERE id = $1', [id]);
+        
+        res.status(200).json({ message: 'Matéria e todas as suas lições foram excluídas com sucesso.' });
+    } catch (error) {
+        console.error("Erro ao excluir matéria:", error);
+        res.status(500).json({ message: 'Erro no servidor ao excluir matéria.' });
+    }
+});
+
+// Rota para excluir uma lição específica
+router.delete('/lesson/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await db.query('DELETE FROM lessons WHERE id = $1', [id]);
+        res.status(200).json({ message: 'Lição excluída com sucesso.' });
+    } catch (error) {
+        console.error("Erro ao excluir lição:", error);
+        res.status(500).json({ message: 'Erro no servidor ao excluir lição.' });
+    }
+});
 module.exports = router;
