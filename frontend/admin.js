@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // O resto do seu código admin.js continua aqui
-const API_URL = 'https://sapiens-backend-XXXX.onrender.com'; // VERIFIQUE SE ESTA URL ESTÁ CORRETA!
+const API_URL = 'https://sapiens-backend-ogz2.onrender.com'; // VERIFIQUE SE ESTA URL ESTÁ CORRETA!
 
 // Elementos do formulário
 const addSubjectForm = document.getElementById('add-subject-form');
