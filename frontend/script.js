@@ -183,10 +183,16 @@ function showPostVideoContent() {
 }
 
 // --- LÓGICA DO QUIZ ---
-function renderQuiz(lesson) {
+// =================================================================================
+// COLE ESTE NOVO BLOCO NO LUGAR DA ANTIGA FUNÇÃO renderQuiz
+// =================================================================================
+async function renderQuiz(lesson) {
     const quizContent = document.getElementById('quiz-content');
     quizContent.style.display = 'block';
+    scrollToElement(quizContent);
+    
     let timerInterval;
+    let selectedOption = null;
 
     function startTimer(duration, display) {
         let timer = duration;
@@ -196,11 +202,156 @@ function renderQuiz(lesson) {
             display.textContent = `Tempo: ${timer}s`;
             if (timer <= 0) {
                 clearInterval(timerInterval);
-                // Lógica de tempo esgotado
+                handleAnswer(null); // Trata o tempo esgotado como uma resposta nula/errada
             }
         }, 1000);
     }
 
+    function showFeedback(isCorrect, explanation) {
+        const feedbackDiv = document.createElement('div');
+        feedbackDiv.id = 'quiz-feedback';
+        feedbackDiv.className = isCorrect ? 'correct' : 'incorrect';
+        feedbackDiv.innerHTML = `<p>${explanation}</p>`;
+        
+        const confirmBtn = document.getElementById('confirm-answer-btn');
+        if(confirmBtn) confirmBtn.insertAdjacentElement('afterend', feedbackDiv);
+        
+        const nextBtn = document.createElement('button');
+        nextBtn.id = 'next-question-btn';
+        nextBtn.textContent = isCorrect ? 'Próxima Questão' : 'Tentar Novamente (Q2)';
+        feedbackDiv.appendChild(nextBtn);
+        
+        return nextBtn;
+    }
+
+    async function handleAnswer(questionType, correctAnswer, selectedAnswer) {
+        clearInterval(timerInterval);
+        document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
+        document.getElementById('confirm-answer-btn').disabled = true;
+
+        const isCorrect = selectedAnswer === correctAnswer;
+
+        // Mostra visualmente qual era a correta e qual foi a selecionada
+        document.querySelectorAll('.option-btn').forEach(btn => {
+            if (btn.textContent === correctAnswer) btn.classList.add('correct');
+            if (btn === selectedOption && !isCorrect) btn.classList.add('incorrect');
+        });
+        
+        if (questionType === 'q1') {
+            const feedbackText = isCorrect ? "Resposta Correta! Este foi um treino. Vamos para a questão avaliativa." : "Resposta Incorreta. A resposta correta está marcada em verde. Vamos para a questão avaliativa.";
+            const nextBtn = showFeedback(isCorrect, feedbackText);
+            nextBtn.textContent = "Iniciar Questão 2";
+            nextBtn.addEventListener('click', () => renderQuestion2());
+        } else if (questionType === 'q2') {
+             // Comunica o resultado ao backend
+            const response = await fetch(`${API_URL}/api/content/submit-quiz`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ userId, lessonId: lesson.id, questionType: 'q2', isCorrect })
+            });
+            const result = await response.json();
+
+            const nextBtn = showFeedback(isCorrect, result.message);
+            
+            if (result.status === 'completed') {
+                nextBtn.textContent = "Ver Próxima Lição";
+                nextBtn.addEventListener('click', () => loadLessons(lesson.subject_id, ''));
+            } else if (result.status === 'retry' || result.status === 'blocked') {
+                nextBtn.textContent = "Voltar para o Vídeo";
+                nextBtn.addEventListener('click', () => renderLessonContent(lesson.id));
+            }
+        }
+    }
+    
+    // --- LÓGICA PARA RENDERIZAR A QUESTÃO 2 ---
+    async function renderQuestion2() {
+        // Pega o progresso atual para saber quais variantes já foram vistas
+        const progressRes = await fetch(`${API_URL}/api/content/start-lesson/${lesson.id}/user/${userId}`);
+        const progress = await progressRes.json();
+        
+        if (progress.blocked_until) {
+            const now = new Date();
+            const blockedUntil = new Date(progress.blocked_until);
+            if (now < blockedUntil) {
+                alert(`Lição bloqueada. Tente novamente em ${blockedUntil.toLocaleTimeString()}`);
+                return;
+            }
+        }
+
+        const seenVariants = progress.q2_variants_seen || [];
+        const availableVariants = [0, 1, 2].filter(i => !seenVariants.includes(i));
+        
+        if (availableVariants.length === 0) {
+            alert('Você já tentou todas as variantes. Avançando com penalidade.');
+            loadLessons(lesson.subject_id, '');
+            return;
+        }
+
+        const variantIndex = availableVariants[Math.floor(Math.random() * availableVariants.length)];
+        const question = lesson.q2_variants[variantIndex];
+        const correctAnswer = question.options[0];
+
+        quizContent.innerHTML = `<h3>Questão 2 (Avaliativa)</h3><p>${question.text}</p><div id="timer"></div><div class="options-container"></div><button id="confirm-answer-btn" disabled>Confirmar</button>`;
+        const optionsContainer = quizContent.querySelector('.options-container');
+        const timerDisplay = document.getElementById('timer');
+        
+        // Embaralha as opções para exibição
+        const shuffledOptions = [...question.options].sort(() => Math.random() - 0.5);
+        shuffledOptions.forEach(option => {
+            optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`;
+        });
+
+        startTimer(lesson.q2_time, timerDisplay);
+        
+        selectedOption = null;
+        optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (selectedOption) selectedOption.classList.remove('selected');
+                selectedOption = btn;
+                selectedOption.classList.add('selected');
+                document.getElementById('confirm-answer-btn').disabled = false;
+            });
+        });
+
+        document.getElementById('confirm-answer-btn').addEventListener('click', () => {
+             handleAnswer('q2', correctAnswer, selectedOption ? selectedOption.textContent : null);
+        });
+    }
+
+
+    // --- INÍCIO DO QUIZ: RENDERIZA A QUESTÃO 1 ---
+    function renderQuestion1() {
+        const correctAnswer = lesson.q1_options[0]; // A resposta correta é a primeira
+
+        quizContent.innerHTML = `<h3>Questão 1 (Treino)</h3><p>${lesson.q1_text}</p><div id="timer"></div><div class="options-container"></div><button id="confirm-answer-btn" disabled>Confirmar</button>`;
+        const optionsContainer = quizContent.querySelector('.options-container');
+        const timerDisplay = document.getElementById('timer');
+        
+        // Embaralha as opções para exibição
+        const shuffledOptions = [...lesson.q1_options].sort(() => Math.random() - 0.5);
+        shuffledOptions.forEach(option => {
+            optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`;
+        });
+
+        startTimer(lesson.q1_time, timerDisplay);
+        
+        selectedOption = null;
+        optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (selectedOption) selectedOption.classList.remove('selected');
+                selectedOption = btn;
+                selectedOption.classList.add('selected');
+                document.getElementById('confirm-answer-btn').disabled = false;
+            });
+        });
+
+        document.getElementById('confirm-answer-btn').addEventListener('click', () => {
+            handleAnswer('q1', correctAnswer, selectedOption ? selectedOption.textContent : null);
+        });
+    }
+
+    renderQuestion1();
+}
     // Renderiza Questão 1
     quizContent.innerHTML = `<h3>Questão 1 (Treino)</h3><p>${lesson.q1_text}</p><div id="timer"></div><div class="options-container"></div><button id="confirm-answer-btn" disabled>Confirmar</button>`;
     const optionsContainer = quizContent.querySelector('.options-container');
