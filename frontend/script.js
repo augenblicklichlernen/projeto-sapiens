@@ -44,23 +44,34 @@ loginForm.addEventListener('submit', async (e) => {
     const password = document.getElementById('login-password').value;
     
     try {
-        const response = await fetch(`${API_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message);
-
-        token = data.token;
-        localStorage.setItem('token', token);
-        localStorage.setItem('username', data.username);
-        
-        initializeApp();
-
-    } catch (error) {
-        alert(`Erro no login: ${error.message}`);
+    const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
+    
+    const responseText = await response.text(); // Primeiro, pegamos a resposta como texto
+    if (!response.ok) {
+        // Se deu erro, tentamos extrair a mensagem de erro do texto
+        try {
+            const errorData = JSON.parse(responseText);
+            throw new Error(errorData.message || 'Usuário ou senha inválidos.');
+        } catch (e) {
+            throw new Error('Erro de comunicação com o servidor.');
+        }
     }
+
+    const data = JSON.parse(responseText); // Se deu tudo certo, convertemos o texto para JSON
+
+    token = data.token;
+    localStorage.setItem('token', token);
+    localStorage.setItem('username', data.username);
+    
+    initializeApp();
+
+} catch (error) {
+    alert(`Erro no login: ${error.message}`);
+}
 });
 
 registerForm.addEventListener('submit', async (e) => {
@@ -69,20 +80,26 @@ registerForm.addEventListener('submit', async (e) => {
     const password = document.getElementById('register-password').value;
 
     try {
-        const response = await fetch(`${API_URL}/api/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message);
-
-        alert('Registro bem-sucedido! Faça o login.');
-        showView('login-view');
-
-    } catch (error) {
-         alert(`Erro no registro: ${error.message}`);
+    const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
+    
+    if (!response.ok) {
+        // Tenta ler a mensagem de erro do servidor, se houver
+        const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido.' }));
+        throw new Error(errorData.message);
     }
+
+    // Se a resposta for OK, mas não necessariamente tiver conteúdo
+    alert('Registro bem-sucedido! Faça o login.');
+    showView('login-view');
+    registerForm.reset();
+
+} catch (error) {
+     alert(`Erro no registro: ${error.message}`);
+}
 });
 
 
