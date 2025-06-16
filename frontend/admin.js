@@ -1,10 +1,35 @@
-const API_URL = 'https://sapiens-backend-ogz2.onrender.com'; // USE A SUA URL CORRETA AQUI
+// --- INÍCIO DA LÓGICA DE SENHA ---
+document.addEventListener('DOMContentLoaded', () => {
+    const passwordForm = document.getElementById('password-form');
+    const passwordOverlay = document.getElementById('password-overlay');
+    const adminContent = document.getElementById('admin-content');
+
+    passwordForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const passwordInput = document.getElementById('admin-password');
+        
+        // A senha secreta
+        if (passwordInput.value === 'augensapien') {
+            passwordOverlay.style.display = 'none'; // Esconde a tela de senha
+            adminContent.style.display = 'block';   // Mostra o conteúdo do admin
+        } else {
+            alert('Senha incorreta!');
+            passwordInput.value = '';
+        }
+    });
+});
+// --- FIM DA LÓGICA DE SENHA ---
+
+
+// O resto do seu código admin.js continua aqui
+const API_URL = 'https://sapiens-backend-XXXX.onrender.com'; // VERIFIQUE SE ESTA URL ESTÁ CORRETA!
 
 // Elementos do formulário
 const addSubjectForm = document.getElementById('add-subject-form');
 const addLessonForm = document.getElementById('add-lesson-form');
 const selectSubject = document.getElementById('select-subject');
 
+// ... (todo o resto do seu código de admin.js, sem alterações)
 // --- Lógica para Matérias ---
 addSubjectForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -17,12 +42,19 @@ addSubjectForm.addEventListener('submit', async (e) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, color_hex })
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message);
 
+        // Verificação de resposta vazia
+        const responseText = await response.text();
+        if (!response.ok) {
+             try { const errorData = JSON.parse(responseText); throw new Error(errorData.message); }
+             catch(e) { throw new Error(responseText || 'Erro desconhecido do servidor.'); }
+        }
+        
+        const data = JSON.parse(responseText);
         alert(`Matéria "${data.name}" criada com sucesso!`);
         addSubjectForm.reset();
         populateSubjects(); // Atualiza a lista de matérias no outro formulário
+
     } catch (error) {
         alert(`Erro: ${error.message}`);
     }
@@ -31,22 +63,18 @@ addSubjectForm.addEventListener('submit', async (e) => {
 // --- Lógica para Lições ---
 addLessonForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     // Coletar dados da Questão 1
     const q1_options = Array.from(document.querySelectorAll('.q1-option')).map(input => input.value);
-
     // Coletar dados da Questão 2
     const q2_texts = Array.from(document.querySelectorAll('.q2-text')).map(textarea => textarea.value);
     const q2_options_a = Array.from(document.querySelectorAll('.q2-option-a')).map(input => input.value);
     const q2_options_b = Array.from(document.querySelectorAll('.q2-option-b')).map(input => input.value);
     const q2_options_c = Array.from(document.querySelectorAll('.q2-option-c')).map(input => input.value);
-
     const q2_variants = [
         { text: q2_texts[0], options: q2_options_a },
         { text: q2_texts[1], options: q2_options_b },
         { text: q2_texts[2], options: q2_options_c },
     ];
-    
     // Montar o objeto completo da lição
     const lessonData = {
         subject_id: document.getElementById('select-subject').value,
