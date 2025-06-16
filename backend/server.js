@@ -9,7 +9,19 @@ const adminRoutes = require('./routes/admin');
 
 // Inicializa o cérebro (o servidor)
 const app = express();
-app.use(cors()); // Permite que o Frontend converse com o Backend
+
+// --- INÍCIO DA CONFIGURAÇÃO CORS APRIMORADA ---
+// Substitua a URL abaixo pela URL do seu frontend no Render.com
+const frontendURL = 'https://sapiens-frontend-3g1w.onrender.com'; // USE A SUA URL AQUI!
+
+const corsOptions = {
+  origin: frontendURL,
+  optionsSuccessStatus: 200 // para navegadores mais antigos
+};
+
+app.use(cors(corsOptions));
+// --- FIM DA CONFIGURAÇÃO CORS APRIMORADA ---
+
 app.use(express.json()); // Permite que o servidor entenda dados em formato JSON
 
 // Define as rotas (os caminhos que o frontend pode acessar)
