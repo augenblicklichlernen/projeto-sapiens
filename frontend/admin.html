@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <title>Painel do Admin - Projeto Sapiens</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-section { padding: 20px; max-width: 800px; margin: 20px auto; background-color: #fff; border: 2px solid #1a1a1a; border-radius: 8px; box-shadow: 4px 4px 0 0 #1a1a1a; }
+        .admin-section h2 { margin-top: 0; }
+        fieldset { border: 2px dashed #ccc; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+        legend { font-weight: bold; font-family: 'Space Mono', monospace; padding: 0 10px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], textarea, select { width: 100%; margin-bottom: 15px; }
+        textarea { min-height: 100px; }
+    </style>
 </head>
 <body>
     <header><h1>Painel do Administrador</h1></header>
@@ -11,25 +20,98 @@
         <section class="admin-section">
             <h2>Adicionar Nova Matéria</h2>
             <form id="add-subject-form">
-                <input type="text" id="subject-name" placeholder="Nome da Matéria" required>
-                <label for="subject-color">Escolha uma cor:</label>
-                <input type="color" id="subject-color" value="#3b82f6">
+                <label for="subject-name">Nome da Matéria</label>
+                <input type="text" id="subject-name" placeholder="Ex: Finanças" required>
+                <label for="subject-color">Cor da Matéria</label>
+                <input type="color" id="subject-color" value="#ffd700">
                 <button type="submit">Adicionar Matéria</button>
             </form>
         </section>
 
-        <hr>
-
         <section class="admin-section">
             <h2>Adicionar Nova Lição</h2>
-            <p>(A implementação completa deste formulário seria bem longa, mas aqui está a estrutura)</p>
             <form id="add-lesson-form">
-                <label for="select-subject">Matéria:</label>
-                <select id="select-subject" required></select>
-                <input type="text" placeholder="Título da Lição" required>
-                <input type="text" placeholder="URL do Vídeo" required>
-                <!-- ... outros 20 campos para as questões, áudio, imagem, texto ... -->
-                <button type="submit">Adicionar Lição</button>
+                <fieldset>
+                    <legend>Dados Gerais da Lição</legend>
+                    <label for="select-subject">Selecione a Matéria</label>
+                    <select id="select-subject" required></select>
+                    
+                    <label for="lesson-title">Título da Lição</label>
+                    <input type="text" id="lesson-title" placeholder="Ex: Introdução aos Juros Compostos" required>
+
+                    <label for="lesson-order">Ordem da Lição (1 para a primeira, 2 para a segunda, etc.)</label>
+                    <input type="number" id="lesson-order" min="1" value="1" required>
+
+                    <label for="video-url">URL do Vídeo (Embed)</label>
+                    <input type="text" id="video-url" placeholder="Link do vídeo no YouTube, Vimeo, etc." required>
+                    
+                    <label for="image-url">URL da Imagem (pós-vídeo)</label>
+                    <input type="text" id="image-url" placeholder="Link para a imagem .jpg, .png">
+                    
+                    <label for="audio-url">URL do Áudio (pós-vídeo)</label>
+                    <input type="text" id="audio-url" placeholder="Link para o áudio .mp3">
+                    
+                    <label for="lesson-text">Texto Explicativo (com desenhos/HTML se souber)</label>
+                    <textarea id="lesson-text" placeholder="Escreva a explicação aqui..."></textarea>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Questão 1 (Treino)</legend>
+                    <label for="q1-time">Tempo em segundos</label>
+                    <input type="number" id="q1-time" min="10" value="60" required>
+                    <label for="q1-text">Texto da Questão 1</label>
+                    <textarea id="q1-text" required></textarea>
+                    <label>5 Alternativas (a primeira é a correta)</label>
+                    <input type="text" class="q1-option" placeholder="Alternativa Correta" required>
+                    <input type="text" class="q1-option" placeholder="Alternativa 2" required>
+                    <input type="text" class="q1-option" placeholder="Alternativa 3" required>
+                    <input type="text" class="q1-option" placeholder="Alternativa 4" required>
+                    <input type="text" class="q1-option" placeholder="Alternativa 5" required>
+                </fieldset>
+                
+                <fieldset>
+                    <legend>Questão 2 (Avaliativa)</legend>
+                    <label for="q2-time">Tempo em segundos para todas as variantes</label>
+                    <input type="number" id="q2-time" min="10" value="90" required>
+                    
+                    <div class="q2-variant">
+                        <h3>Variante A</h3>
+                        <label>Texto da Questão</label>
+                        <textarea class="q2-text" required></textarea>
+                        <label>6 Alternativas (a primeira é a correta)</label>
+                        <input type="text" class="q2-option-a" placeholder="Alternativa Correta" required>
+                        <input type="text" class="q2-option-a" placeholder="Alternativa 2" required>
+                        <input type="text" class="q2-option-a" placeholder="Alternativa 3" required>
+                        <input type="text" class="q2-option-a" placeholder="Alternativa 4" required>
+                        <input type="text" class="q2-option-a" placeholder="Alternativa 5" required>
+                        <input type="text" class="q2-option-a" placeholder="Alternativa 6" required>
+                    </div>
+                    <div class="q2-variant">
+                        <h3>Variante B</h3>
+                        <label>Texto da Questão</label>
+                        <textarea class="q2-text" required></textarea>
+                        <label>6 Alternativas (a primeira é a correta)</label>
+                        <input type="text" class="q2-option-b" placeholder="Alternativa Correta" required>
+                        <input type="text" class="q2-option-b" placeholder="Alternativa 2" required>
+                        <input type="text" class="q2-option-b" placeholder="Alternativa 3" required>
+                        <input type="text" class="q2-option-b" placeholder="Alternativa 4" required>
+                        <input type="text" class="q2-option-b" placeholder="Alternativa 5" required>
+                        <input type="text" class="q2-option-b" placeholder="Alternativa 6" required>
+                    </div>
+                    <div class="q2-variant">
+                        <h3>Variante C</h3>
+                        <label>Texto da Questão</label>
+                        <textarea class="q2-text" required></textarea>
+                        <label>6 Alternativas (a primeira é a correta)</label>
+                        <input type="text" class="q2-option-c" placeholder="Alternativa Correta" required>
+                        <input type="text" class="q2-option-c" placeholder="Alternativa 2" required>
+                        <input type="text" class="q2-option-c" placeholder="Alternativa 3" required>
+                        <input type="text" class="q2-option-c" placeholder="Alternativa 4" required>
+                        <input type="text" class="q2-option-c" placeholder="Alternativa 5" required>
+                        <input type="text" class="q2-option-c" placeholder="Alternativa 6" required>
+                    </div>
+                </fieldset>
+                <button type="submit" style="width:100%; padding: 20px; font-size: 1.2rem;">SALVAR LIÇÃO COMPLETA</button>
             </form>
         </section>
     </main>
