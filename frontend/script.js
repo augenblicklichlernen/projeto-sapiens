@@ -127,14 +127,82 @@ async function fetchSubjects() {
     }
 }
 
-function loadLessons(subjectId) {
-    // Aqui viria a lógica para carregar as lições da matéria clicada
-    alert(`Carregando lições da matéria com ID: ${subjectId}`);
-    // Você faria um fetch para /api/content/lessons/:subjectId
-    // e então construiria a visualização da lição
+// =====================================================================
+// COLE ESTE BLOCO NO LUGAR DA ANTIGA FUNÇÃO loadLessons
+// =====================================================================
+
+async function loadLessons(subjectId) {
     showView('lesson-view');
-    lessonView.innerHTML = `<h2>Lições aparecerão aqui</h2><p>Funcionalidade a ser implementada.</p>`;
+    lessonView.innerHTML = '<h2>Carregando lições...</h2>';
+
+    try {
+        const response = await fetch(`${API_URL}/api/content/lessons/${subjectId}`);
+        if (!response.ok) throw new Error('Não foi possível carregar as lições.');
+        
+        const lessons = await response.json();
+
+        if (lessons.length === 0) {
+            lessonView.innerHTML = `
+                <button class="back-btn" onclick="showView('subjects-view')">← Voltar para Matérias</button>
+                <h2>Nenhuma lição disponível.</h2>
+                <p>O conteúdo para esta matéria será adicionado em breve.</p>
+            `;
+            return;
+        }
+
+        // --- LÓGICA DE BLOQUEIO DE LIÇÕES ---
+        // Aqui você buscaria o progresso do aluno no backend.
+        // Por enquanto, vamos simplificar e desbloquear apenas a primeira lição.
+        const lastCompletedLessonOrder = 0; // No futuro, isso viria do progresso do usuário.
+
+        let lessonListHtml = `
+            <button class="back-btn" onclick="showView('subjects-view')">← Voltar para Matérias</button>
+            <h2>Lições</h2>
+            <ul class="lesson-list">
+        `;
+
+        lessons.forEach(lesson => {
+            const isLocked = lesson.lesson_order > lastCompletedLessonOrder + 1;
+            
+            lessonListHtml += `
+                <li class="lesson-item ${isLocked ? 'locked' : ''}">
+                    <span>Lição ${lesson.lesson_order}: ${lesson.title}</span>
+                    <button class="start-lesson-btn" data-lesson-id="${lesson.id}" ${isLocked ? 'disabled' : ''}>
+                        Iniciar
+                    </button>
+                </li>
+            `;
+        });
+        
+        lessonListHtml += '</ul>';
+        lessonView.innerHTML = lessonListHtml;
+
+    } catch (error) {
+        lessonView.innerHTML = `<h2>Erro ao carregar.</h2><p>${error.message}</p>`;
+    }
 }
+
+// Esta função será chamada quando o aluno clicar em "Iniciar"
+function renderLessonContent(lessonId) {
+    // Esta é a próxima grande funcionalidade a ser construída.
+    // Aqui você buscaria os detalhes da lição (vídeo, texto, questões)
+    // e montaria a interface de aprendizado completa que você descreveu.
+    showView('lesson-view');
+    lessonView.innerHTML = `
+        <button class="back-btn" onclick="history.back()">← Voltar para a lista</button>
+        <h2>Conteúdo da Lição (ID: ${lessonId})</h2>
+        <p>A interface com vídeo, texto, áudio e questões será construída aqui.</p>
+        <p><strong>Próximo passo:</strong> Fazer um fetch para <code>/api/content/lesson-detail/${lessonId}</code> (rota a ser criada no backend) e usar os dados para montar a página dinamicamente.</p>
+    `;
+}
+
+// "Ouvinte" de eventos para os botões "Iniciar"
+document.body.addEventListener('click', e => {
+    if (e.target && e.target.classList.contains('start-lesson-btn')) {
+        const lessonId = e.target.dataset.lessonId;
+        renderLessonContent(lessonId);
+    }
+});
 
 
 function initializeApp() {

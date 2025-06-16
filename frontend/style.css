@@ -107,3 +107,41 @@ input[type="text"], input[type="password"] {
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
 }
+
+/* --- ESTILOS DA VISUALIZAÇÃO DA LIÇÃO --- */
+#lesson-view h2 {
+    font-family: 'Space Mono', monospace;
+}
+
+.lesson-list {
+    list-style: none;
+    padding: 0;
+}
+
+.lesson-item {
+    background-color: #fff;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--box-shadow);
+}
+
+.lesson-item.locked {
+    background-color: #e2e8f0;
+    color: #a0aec0;
+    cursor: not-allowed;
+}
+
+.lesson-item.locked .start-lesson-btn {
+    background-color: #a0aec0;
+    cursor: not-allowed;
+}
+
+.lesson-item span {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
