@@ -10,7 +10,25 @@ const adminRoutes = require('./routes/admin');
 // Inicializa o cérebro (o servidor)
 const app = express();
 
-app.use(cors()); // Permite que o Frontend converse com o Backend de forma mais flexível
+// --- INÍCIO DA CONFIGURAÇÃO CORS MANUAL E ROBUSTA ---
+app.use((req, res, next) => {
+  // Permite que QUALQUER origem acesse a API. 
+  // Para maior segurança no futuro, você pode substituir '*' pela URL do seu frontend.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
+  // Define os métodos HTTP que são permitidos
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+  
+  // Define os cabeçalhos que o cliente (frontend) pode enviar na requisição
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
+  
+  // Indica que as credenciais (como cookies ou tokens de autorização) podem ser enviadas
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  
+  // Passa para o próximo middleware da fila
+  next();
+});
+// --- FIM DA CONFIGURAÇÃO CORS MANUAL E ROBUSTA ---
 app.use(express.json()); // Permite que o servidor entenda dados em formato JSON
 
 // Define as rotas (os caminhos que o frontend pode acessar)
