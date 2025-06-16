@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000'; // MUDAREMOS
+const API_URL = 'https://sapiens-frontend-3g1w.onrender.com';
 
 const addSubjectForm = document.getElementById('add-subject-form');
 

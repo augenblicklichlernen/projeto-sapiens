@@ -1,6 +1,6 @@
 // A URL do seu cérebro (backend) quando estiver no ar no Render
 // Por enquanto, usamos a URL local para desenvolvimento
-const API_URL = 'http://localhost:3000'; // MUDAREMOS ISSO NO FINAL
+const API_URL = 'https://sapiens-frontend-3g1w.onrender.com';
 
 // Elementos da página
 const appContent = document.getElementById('app-content');
