@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel do Admin - Projeto Sapiens</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header><h1>Painel do Administrador</h1></header>
+    <main>
+        <section class="admin-section">
+            <h2>Adicionar Nova Matéria</h2>
+            <form id="add-subject-form">
+                <input type="text" id="subject-name" placeholder="Nome da Matéria" required>
+                <label for="subject-color">Escolha uma cor:</label>
+                <input type="color" id="subject-color" value="#3b82f6">
+                <button type="submit">Adicionar Matéria</button>
+            </form>
+        </section>
+
+        <hr>
+
+        <section class="admin-section">
+            <h2>Adicionar Nova Lição</h2>
+            <p>(A implementação completa deste formulário seria bem longa, mas aqui está a estrutura)</p>
+            <form id="add-lesson-form">
+                <label for="select-subject">Matéria:</label>
+                <select id="select-subject" required></select>
+                <input type="text" placeholder="Título da Lição" required>
+                <input type="text" placeholder="URL do Vídeo" required>
+                <!-- ... outros 20 campos para as questões, áudio, imagem, texto ... -->
+                <button type="submit">Adicionar Lição</button>
+            </form>
+        </section>
+    </main>
+    <script src="admin.js"></script>
+</body>
+</html>

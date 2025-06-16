@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF--8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto Sapiens</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Lexend:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header>
+        <h1>Projeto Sapiens</h1>
+        <div id="user-area">
+            <button id="login-button">Entrar</button>
+        </div>
+    </header>
+
+    <main id="app-content">
+        <!-- O conteúdo será carregado aqui pelo JavaScript -->
+        <div id="login-view" class="view active">
+            <h2>Bem-vindo(a)!</h2>
+            <form id="login-form">
+                <input type="text" id="login-username" placeholder="Usuário" required>
+                <input type="password" id="login-password" placeholder="Senha" required>
+                <button type="submit">Login</button>
+            </form>
+            <p>Não tem uma conta? <a href="#" id="show-register">Registre-se</a></p>
+        </div>
+
+        <div id="register-view" class="view">
+             <h2>Crie sua Conta</h2>
+            <form id="register-form">
+                <input type="text" id="register-username" placeholder="Escolha um usuário" required>
+                <input type="password" id="register-password" placeholder="Crie uma senha" required>
+                <button type="submit">Registrar</button>
+            </form>
+            <p>Já tem uma conta? <a href="#" id="show-login">Faça o login</a></p>
+        </div>
+        
+        <div id="subjects-view" class="view">
+            <h2>Escolha uma Matéria</h2>
+            <div id="subjects-grid">
+                <!-- Matérias serão inseridas aqui -->
+            </div>
+        </div>
+
+        <div id="lesson-view" class="view">
+            <!-- A estrutura da lição será construída aqui -->
+        </div>
+
+        <!-- O painel de administrador será uma página separada -->
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
