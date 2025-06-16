@@ -1,4 +1,4 @@
-const API_URL = 'https://sapiens-backend.onrender.com'; // USE A SUA URL CORRETA AQUI
+const API_URL = 'https://sapiens-backend-ogz2.onrender.com'; // USE A SUA URL CORRETA AQUI
 
 // Elementos do formulário
 const addSubjectForm = document.getElementById('add-subject-form');
