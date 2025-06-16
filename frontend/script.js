@@ -1,315 +1,257 @@
-// A URL do seu cérebro (backend) quando estiver no ar no Render
-// Por enquanto, usamos a URL local para desenvolvimento
+// =================================================================================
+// ARQUIVO script.js COMPLETO (Versão FINAL)
+// =================================================================================
+
 const API_URL = 'https://sapiens-backend-ogz2.onrender.com';
 
-// Elementos da página
+// --- ELEMENTOS GLOBAIS ---
 const appContent = document.getElementById('app-content');
 const loginView = document.getElementById('login-view');
 const registerView = document.getElementById('register-view');
 const subjectsView = document.getElementById('subjects-view');
 const lessonView = document.getElementById('lesson-view');
 const subjectsGrid = document.getElementById('subjects-grid');
+let ytPlayer; // Variável global para o player do YouTube
 
-// Formulários
-const loginForm = document.getElementById('login-form');
-const registerForm = document.getElementById('register-form');
-
-// Links de navegação entre login/registro
-const showRegisterLink = document.getElementById('show-register');
-const showLoginLink = document.getElementById('show-login');
-
-// Estado do aplicativo
+// --- ESTADO DO APLICATIVO ---
 let token = localStorage.getItem('token');
+let userId = localStorage.getItem('userId');
 
-// --- FUNÇÕES DE NAVEGAÇÃO ---
+// =================================================================================
+// FUNÇÕES DE UTILIDADE
+// =================================================================================
 function showView(viewId) {
     document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
+    const viewToShow = document.getElementById(viewId);
+    if (viewToShow) viewToShow.classList.add('active');
 }
 
-// --- LÓGICA DE AUTENTICAÇÃO ---
-showRegisterLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    showView('register-view');
-});
+function scrollToElement(element) {
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
 
-showLoginLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    showView('login-view');
-});
 
-loginForm.addEventListener('submit', async (e) => {
+// =================================================================================
+// LÓGICA DE AUTENTICAÇÃO
+// =================================================================================
+function setupAuthListeners() {
+    document.getElementById('show-register')?.addEventListener('click', (e) => { e.preventDefault(); showView('register-view'); });
+    document.getElementById('show-login')?.addEventListener('click', (e) => { e.preventDefault(); showView('login-view'); });
+    
+    document.getElementById('login-form')?.addEventListener('submit', handleLogin);
+    document.getElementById('register-form')?.addEventListener('submit', handleRegister);
+}
+
+async function handleLogin(e) {
     e.preventDefault();
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
-    
     try {
-    const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
-    
-    const responseText = await response.text(); // Primeiro, pegamos a resposta como texto
-    if (!response.ok) {
-        // Se deu erro, tentamos extrair a mensagem de erro do texto
-        try {
-            const errorData = JSON.parse(responseText);
-            throw new Error(errorData.message || 'Usuário ou senha inválidos.');
-        } catch (e) {
-            throw new Error('Erro de comunicação com o servidor.');
-        }
-    }
-
-    const data = JSON.parse(responseText); // Se deu tudo certo, convertemos o texto para JSON
-
-    token = data.token;
-    localStorage.setItem('token', token);
-    localStorage.setItem('username', data.username);
-    
-    initializeApp();
-
-} catch (error) {
-    alert(`Erro no login: ${error.message}`);
+        const response = await fetch(`${API_URL}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', data.username);
+        localStorage.setItem('userId', data.userId); // Assumindo que o backend retorna o ID do usuário
+        token = data.token;
+        userId = data.userId;
+        initializeApp();
+    } catch (error) { alert(`Erro no login: ${error.message}`); }
 }
-});
-
-registerForm.addEventListener('submit', async (e) => {
+async function handleRegister(e) {
     e.preventDefault();
     const username = document.getElementById('register-username').value;
     const password = document.getElementById('register-password').value;
-
     try {
-    const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
-    
-    if (!response.ok) {
-        // Tenta ler a mensagem de erro do servidor, se houver
-        const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido.' }));
-        throw new Error(errorData.message);
-    }
-
-    // Se a resposta for OK, mas não necessariamente tiver conteúdo
-    alert('Registro bem-sucedido! Faça o login.');
-    showView('login-view');
-    registerForm.reset();
-
-} catch (error) {
-     alert(`Erro no registro: ${error.message}`);
+        const response = await fetch(`${API_URL}/api/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        if (!response.ok) {
+            const errorData = await response.json(); throw new Error(errorData.message);
+        }
+        alert('Registro bem-sucedido! Faça o login.');
+        showView('login-view');
+    } catch (error) { alert(`Erro no registro: ${error.message}`); }
 }
-});
 
 
-// --- LÓGICA PRINCIPAL DO APP ---
+// =================================================================================
+// LÓGICA PRINCIPAL DO APLICATIVO
+// =================================================================================
+
+// --- TELA DE MATÉRIAS ---
 async function fetchSubjects() {
     try {
-        const response = await fetch(`${API_URL}/api/content/subjects`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await fetch(`${API_URL}/api/content/subjects`, { headers: { 'Authorization': `Bearer ${token}` } });
         const subjects = await response.json();
-        
-        subjectsGrid.innerHTML = ''; // Limpa a grade
+        subjectsGrid.innerHTML = '';
         subjects.forEach(subject => {
             const card = document.createElement('div');
             card.className = 'subject-card';
-            // A mágica da cor dinâmica acontece aqui!
             card.style.setProperty('--subject-color', subject.color_hex);
             card.innerHTML = `<h3>${subject.name}</h3>`;
-            card.addEventListener('click', () => loadLessons(subject.id));
+            card.addEventListener('click', () => loadLessons(subject.id, subject.name));
             subjectsGrid.appendChild(card);
         });
-
-    } catch (error) {
-        console.error('Erro ao buscar matérias:', error);
-    }
+    } catch (error) { console.error('Erro ao buscar matérias:', error); }
 }
 
-// =====================================================================
-// COLE ESTE BLOCO NO LUGAR DA ANTIGA FUNÇÃO loadLessons
-// =====================================================================
-
-async function loadLessons(subjectId) {
+// --- TELA DE LIÇÕES ---
+async function loadLessons(subjectId, subjectName) {
     showView('lesson-view');
     lessonView.innerHTML = '<h2>Carregando lições...</h2>';
-
     try {
         const response = await fetch(`${API_URL}/api/content/lessons/${subjectId}`);
-        if (!response.ok) throw new Error('Não foi possível carregar as lições.');
-        
         const lessons = await response.json();
-
         if (lessons.length === 0) {
-            lessonView.innerHTML = `
-                <button class="back-btn" onclick="showView('subjects-view')">← Voltar para Matérias</button>
-                <h2>Nenhuma lição disponível.</h2>
-                <p>O conteúdo para esta matéria será adicionado em breve.</p>
-            `;
+            lessonView.innerHTML = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar</button><h2>Nenhuma lição disponível.</h2>`;
             return;
         }
-
-        // --- LÓGICA DE BLOQUEIO DE LIÇÕES ---
-        // Aqui você buscaria o progresso do aluno no backend.
-        // Por enquanto, vamos simplificar e desbloquear apenas a primeira lição.
-        const lastCompletedLessonOrder = 0; // No futuro, isso viria do progresso do usuário.
-
-        let lessonListHtml = `
-            <button class="back-btn" onclick="showView('subjects-view')">← Voltar para Matérias</button>
-            <h2>Lições</h2>
-            <ul class="lesson-list">
-        `;
-
+        // Lógica de progresso viria aqui
+        lessonView.innerHTML = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar para Matérias</button><h2>${subjectName}</h2><ul class="lesson-list">`;
+        const lessonList = lessonView.querySelector('.lesson-list');
         lessons.forEach(lesson => {
-            const isLocked = lesson.lesson_order > lastCompletedLessonOrder + 1;
-            
-            lessonListHtml += `
-                <li class="lesson-item ${isLocked ? 'locked' : ''}">
-                    <span>Lição ${lesson.lesson_order}: ${lesson.title}</span>
-                    <button class="start-lesson-btn" data-lesson-id="${lesson.id}" ${isLocked ? 'disabled' : ''}>
-                        Iniciar
-                    </button>
-                </li>
-            `;
+            lessonList.innerHTML += `<li class="lesson-item"><span>Lição ${lesson.lesson_order}: ${lesson.title}</span><button class="start-lesson-btn" data-lesson-id="${lesson.id}">Iniciar</button></li>`;
         });
-        
-        lessonListHtml += '</ul>';
-        lessonView.innerHTML = lessonListHtml;
-
-    } catch (error) {
-        lessonView.innerHTML = `<h2>Erro ao carregar.</h2><p>${error.message}</p>`;
-    }
+    } catch (error) { lessonView.innerHTML = `<h2>Erro ao carregar.</h2><p>${error.message}</p>`; }
 }
 
-// =====================================================================
-// COLE ESTE BLOCO NO LUGAR DAS ANTIGAS FUNÇÕES renderLessonContent E addEventListener
-// =====================================================================
 
-// "Ouvinte" de eventos para os botões "Iniciar" na lista de lições
+// --- TELA DE CONTEÚDO DA LIÇÃO ---
 document.body.addEventListener('click', async e => {
     if (e.target && e.target.classList.contains('start-lesson-btn')) {
         const lessonId = e.target.dataset.lessonId;
-        showView('lesson-view');
-        lessonView.innerHTML = `<h2>Carregando lição...</h2>`;
-        
-        try {
-            // Passo 1: Buscar os detalhes da lição no backend
-            const response = await fetch(`${API_URL}/api/content/lesson-detail/${lessonId}`);
-            if (!response.ok) throw new Error('Não foi possível carregar o conteúdo da lição.');
-            
-            const lesson = await response.json();
-
-            // Passo 2: Construir a interface da lição com os dados recebidos
-            lessonView.innerHTML = `
-                <button class="back-btn" onclick="loadLessons(${lesson.subject_id})">← Voltar para Lições</button>
-                
-                <div id="lesson-content-area">
-                    <h2>${lesson.title}</h2>
-                    
-                    <div id="video-container">
-                        <iframe width="100%" height="480" src="${lesson.video_url.replace('watch?v=', 'embed/')}" 
-                                title="YouTube video player" frameborder="0" 
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                allowfullscreen>
-                        </iframe>
-                    </div>
-
-                    <div id="post-video-content" style="display:none;">
-                        <h3>Recursos Adicionais</h3>
-                        <div id="image-container">
-                            <img src="${lesson.image_url}" alt="Imagem da lição" style="max-width: 100%;">
-                        </div>
-                        <div id="audio-container">
-                            <audio controls src="${lesson.audio_url}"></audio>
-                        </div>
-                        <button id="show-text-btn">Ver Explicação Escrita</button>
-                    </div>
-
-                    <div id="text-content" style="display:none;">
-                        <h3>Explicação Detalhada</h3>
-                        <div>${lesson.lesson_text}</div>
-                        <button id="start-quiz-btn">Iniciar Questões</button>
-                    </div>
-
-                    <div id="quiz-content" style="display:none;">
-                        <!-- O quiz será construído aqui -->
-                        <p>O quiz aparecerá aqui em breve!</p>
-                    </div>
-                </div>
-            `;
-            
-            // Passo 3: Adicionar a lógica de interatividade da lição
-            addLessonInteractivity(lesson);
-
-        } catch (error) {
-            lessonView.innerHTML = `<h2>Erro ao carregar.</h2><p>${error.message}</p>`;
-        }
+        renderLessonContent(lessonId);
     }
 });
 
-
-function addLessonInteractivity(lesson) {
-    const videoFrame = document.querySelector('#video-container iframe');
-    const postVideoContent = document.getElementById('post-video-content');
-    const showTextBtn = document.getElementById('show-text-btn');
-    const textContent = document.getElementById('text-content');
-    const startQuizBtn = document.getElementById('start-quiz-btn');
-
-    // Lógica para monitorar o vídeo (simplificada)
-    // Uma implementação real requer a API do YouTube/Vimeo para precisão.
-    // Esta é uma simulação baseada em tempo.
-    setTimeout(() => {
-        postVideoContent.style.display = 'block';
-    }, 10000); // Mostra após 10 segundos para simular 80% do vídeo
-
-    showTextBtn.addEventListener('click', () => {
-        textContent.style.display = 'block';
-    });
-
-    startQuizBtn.addEventListener('click', () => {
-        // Futura função que irá construir e iniciar o quiz
-        renderQuiz(lesson);
-    });
+async function renderLessonContent(lessonId) {
+    showView('lesson-view');
+    lessonView.innerHTML = `<h2>Carregando lição...</h2>`;
+    try {
+        const lessonRes = await fetch(`${API_URL}/api/content/lesson-detail/${lessonId}`);
+        const lesson = await lessonRes.json();
+        
+        lessonView.innerHTML = `
+            <button class="back-btn" onclick="loadLessons(${lesson.subject_id}, '')">← Voltar</button>
+            <div id="lesson-content-area"><h2>${lesson.title}</h2><div id="video-placeholder"></div></div>
+            <div id="post-video-content" style="display:none;"><hr><h3>Recursos Adicionais</h3><img src="${lesson.image_url}" alt="Imagem da lição" style="max-width: 100%; border-radius: 8px;"><audio controls src="${lesson.audio_url}"></audio><button id="show-text-btn">Ver Explicação Escrita</button></div>
+            <div id="text-content" style="display:none;"><hr><h3>Explicação Detalhada</h3><div>${lesson.lesson_text}</div><button id="start-quiz-btn">Iniciar Questões</button></div>
+            <div id="quiz-content" style="display:none;"></div>`;
+        
+        createYouTubePlayer(lesson);
+    } catch (error) { lessonView.innerHTML = `<h2>Erro ao carregar.</h2><p>${error.message}</p>`; }
 }
 
+// --- LÓGICA DO PLAYER DE VÍDEO ---
+function createYouTubePlayer(lesson) {
+    const videoId = new URL(lesson.video_url).searchParams.get('v');
+    let progressCheckInterval;
+
+    ytPlayer = new YT.Player('video-placeholder', {
+        height: '480', width: '100%', videoId: videoId,
+        events: {
+            'onStateChange': (event) => {
+                if (event.data == YT.PlayerState.PLAYING) {
+                    progressCheckInterval = setInterval(() => {
+                        const currentTime = ytPlayer.getCurrentTime();
+                        const duration = ytPlayer.getDuration();
+                        if ((currentTime / duration) >= 0.8) {
+                            showPostVideoContent();
+                            clearInterval(progressCheckInterval);
+                        }
+                    }, 1000);
+                } else {
+                    clearInterval(progressCheckInterval);
+                }
+            }
+        }
+    });
+    
+    document.getElementById('show-text-btn').addEventListener('click', () => {
+        const textContent = document.getElementById('text-content');
+        textContent.style.display = 'block';
+        scrollToElement(textContent);
+    });
+    document.getElementById('start-quiz-btn').addEventListener('click', () => renderQuiz(lesson));
+}
+
+function showPostVideoContent() {
+    const postVideoContent = document.getElementById('post-video-content');
+    postVideoContent.style.display = 'block';
+    scrollToElement(postVideoContent);
+}
+
+// --- LÓGICA DO QUIZ ---
 function renderQuiz(lesson) {
     const quizContent = document.getElementById('quiz-content');
     quizContent.style.display = 'block';
-    quizContent.innerHTML = `
-        <h3>Questão 1 (Treino)</h3>
-        <p>${lesson.q1_text}</p>
-        <div id="timer">Tempo: ${lesson.q1_time}s</div>
-        <div class="options-container">
-            ${lesson.q1_options.map(option => `<button class="option-btn">${option}</button>`).join('')}
-        </div>
-        <p>Funcionalidade completa do quiz (timer, respostas, etc.) a ser implementada.</p>
-    `;
+    let timerInterval;
+
+    function startTimer(duration, display) {
+        let timer = duration;
+        display.textContent = `Tempo: ${timer}s`;
+        timerInterval = setInterval(() => {
+            timer--;
+            display.textContent = `Tempo: ${timer}s`;
+            if (timer <= 0) {
+                clearInterval(timerInterval);
+                // Lógica de tempo esgotado
+            }
+        }, 1000);
+    }
+
+    // Renderiza Questão 1
+    quizContent.innerHTML = `<h3>Questão 1 (Treino)</h3><p>${lesson.q1_text}</p><div id="timer"></div><div class="options-container"></div><button id="confirm-answer-btn" disabled>Confirmar</button>`;
+    const optionsContainer = quizContent.querySelector('.options-container');
+    const timerDisplay = document.getElementById('timer');
+    
+    lesson.q1_options.forEach(option => {
+        optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`;
+    });
+
+    startTimer(lesson.q1_time, timerDisplay);
+    
+    let selectedOption = null;
+    optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (selectedOption) selectedOption.classList.remove('selected');
+            selectedOption = btn;
+            selectedOption.classList.add('selected');
+            document.getElementById('confirm-answer-btn').disabled = false;
+        });
+    });
+
+    // Lógica de confirmação viria aqui...
+    document.getElementById('confirm-answer-btn').addEventListener('click', () => {
+        clearInterval(timerInterval);
+        // Lógica de feedback e avanço para a Q2
+        alert("Avançando para a Questão 2 (a ser implementada)");
+    });
+    
+    scrollToElement(quizContent);
 }
 
 
+// =================================================================================
+// INICIALIZAÇÃO DO APLICATIVO
+// =================================================================================
 function initializeApp() {
     if (token) {
-        // Usuário está logado
-        fetchSubjects();
         showView('subjects-view');
-        // Atualizar o header
+        fetchSubjects();
         const userArea = document.getElementById('user-area');
-        userArea.innerHTML = `
-            <span>Olá, ${localStorage.getItem('username')}!</span>
-            <button id="logout-button">Sair</button>
-        `;
+        userArea.innerHTML = `<span>Olá, ${localStorage.getItem('username')}!</span><button id="logout-button">Sair</button>`;
         document.getElementById('logout-button').addEventListener('click', () => {
-            token = null;
-            localStorage.clear();
-            window.location.reload(); // Recarrega a página
+            localStorage.clear(); window.location.reload();
         });
-
     } else {
-        // Usuário não está logado
         showView('login-view');
     }
 }
 
-// Inicia o aplicativo quando a página carrega
-initializeApp();
+// O ponto de entrada de tudo
+document.addEventListener('DOMContentLoaded', () => {
+    setupAuthListeners();
+    initializeApp();
+});

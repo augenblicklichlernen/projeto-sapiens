@@ -20,7 +20,6 @@ async function connect() {
   }
 }
 
-// Função que cria as tabelas do nosso sistema caso elas não existam
 async function createTables() {
   const createTablesQuery = `
     CREATE TABLE IF NOT EXISTS users (
@@ -45,24 +44,43 @@ async function createTables() {
       audio_url TEXT,
       lesson_text TEXT,
       q1_text TEXT,
-      q1_options TEXT[], -- Array de 5 strings
+      q1_options TEXT[],
       q1_time INTEGER,
-      q2_variants JSONB, -- Armazena as 3 variantes da questão 2
+      q2_variants JSONB,
       q2_time INTEGER
     );
 
-    CREATE TABLE IF NOT EXISTS user_progress (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-      lesson_id INTEGER REFERENCES lessons(id) ON DELETE CASCADE,
-      score INTEGER DEFAULT 0,
-      completed_at TIMESTAMP,
-      attempts_q2 INTEGER DEFAULT 0,
-      blocked_until TIMESTAMP
+    -- NOVA TABELA PARA PROGRESSO DETALHADO
+    CREATE TABLE IF NOT EXISTS user_lesson_progress (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+        score INTEGER DEFAULT 0,
+        completed_at TIMESTAMP,
+        q2_attempts INTEGER DEFAULT 0,
+        q2_variants_seen INTEGER[] DEFAULT ARRAY[]::INTEGER[],
+        blocked_until TIMESTAMP,
+        UNIQUE(user_id, lesson_id)
+    );
+
+    -- NOVAS TABELAS PARA LIÇÕES DE REFORÇO
+    CREATE TABLE IF NOT EXISTS reinforcement_lessons (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        trigger_lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+        content JSONB -- Armazena vídeo, texto, questões de treino, etc.
+    );
+
+    CREATE TABLE IF NOT EXISTS user_reinforcement_progress (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        reinforcement_lesson_id INTEGER NOT NULL REFERENCES reinforcement_lessons(id) ON DELETE CASCADE,
+        completed_at TIMESTAMP,
+        UNIQUE(user_id, reinforcement_lesson_id)
     );
   `;
   await pool.query(createTablesQuery);
-  console.log('Tabelas verificadas/criadas com sucesso!');
+  console.log('Tabelas (versão final) verificadas/criadas com sucesso!');
 }
 
 module.exports = {
