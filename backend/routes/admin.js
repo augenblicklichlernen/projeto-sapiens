@@ -115,4 +115,18 @@ router.delete('/user/:id', async (req, res) => {
     }
 });
 
+// ROTA PARA ADICIONAR LIÇÃO DE REFORÇO
+router.post('/reinforcement-lesson', async (req, res) => {
+    const { title, trigger_lesson_id, content } = req.body;
+    try {
+        await db.query(
+            'INSERT INTO reinforcement_lessons (title, trigger_lesson_id, content) VALUES ($1, $2, $3)',
+            [title, trigger_lesson_id, JSON.stringify(content)]
+        );
+        res.status(201).json({ message: 'Lição de reforço criada com sucesso.' });
+    } catch (error) { res.status(500).json({ message: 'Erro no servidor.' }); }
+});
+
+
+
 module.exports = router;

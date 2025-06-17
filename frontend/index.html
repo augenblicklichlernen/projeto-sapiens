@@ -72,6 +72,23 @@
 
     </main>
 
+        <!-- INÍCIO DA SEÇÃO DE CERTIFICADOS -->
+    <div id="certificates-view" class="view">
+        <h2>Meus Certificados</h2>
+        <button class="back-btn" onclick="showView('subjects-view')">← Voltar para Matérias</button>
+        <div id="certificates-list"></div>
+    </div>
+
+    <!-- MODAL PARA EXIBIR O CERTIFICADO -->
+    <div id="certificate-modal" style="display:none;">
+        <div id="certificate-content">
+            <!-- O certificado será gerado aqui -->
+        </div>
+        <button id="close-modal-btn">Fechar</button>
+    </div>
+    <!-- FIM DA SEÇÃO DE CERTIFICADOS -->
+
+
     <script src="script.js"></script>
 </body>
 </html>

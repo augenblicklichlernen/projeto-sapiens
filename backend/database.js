@@ -27,60 +27,53 @@ async function createTables() {
       username VARCHAR(50) UNIQUE NOT NULL,
       password TEXT NOT NULL
     );
-
     CREATE TABLE IF NOT EXISTS subjects (
       id SERIAL PRIMARY KEY,
       name VARCHAR(100) UNIQUE NOT NULL,
       color_hex VARCHAR(7) NOT NULL
     );
-
     CREATE TABLE IF NOT EXISTS lessons (
       id SERIAL PRIMARY KEY,
       subject_id INTEGER REFERENCES subjects(id) ON DELETE CASCADE,
       title VARCHAR(255) NOT NULL,
       lesson_order INTEGER NOT NULL,
-      video_url TEXT,
-      image_url TEXT,
-      audio_url TEXT,
-      lesson_text TEXT,
-      q1_text TEXT,
-      q1_options TEXT[],
-      q1_time INTEGER,
-      q2_variants JSONB,
-      q2_time INTEGER
+      video_url TEXT, image_url TEXT, audio_url TEXT, lesson_text TEXT,
+      q1_text TEXT, q1_options TEXT[], q1_time INTEGER,
+      q2_variants JSONB, q2_time INTEGER
     );
-
-    -- NOVA TABELA PARA PROGRESSO DETALHADO
     CREATE TABLE IF NOT EXISTS user_lesson_progress (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
-        score INTEGER DEFAULT 0,
-        completed_at TIMESTAMP,
-        q2_attempts INTEGER DEFAULT 0,
+        score INTEGER DEFAULT 0, completed_at TIMESTAMP, q2_attempts INTEGER DEFAULT 0,
         q2_variants_seen INTEGER[] DEFAULT ARRAY[]::INTEGER[],
-        blocked_until TIMESTAMP,
-        UNIQUE(user_id, lesson_id)
+        blocked_until TIMESTAMP, UNIQUE(user_id, lesson_id)
     );
-
-    -- NOVAS TABELAS PARA LIÇÕES DE REFORÇO
     CREATE TABLE IF NOT EXISTS reinforcement_lessons (
         id SERIAL PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
         trigger_lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
         content JSONB -- Armazena vídeo, texto, questões de treino, etc.
     );
-
     CREATE TABLE IF NOT EXISTS user_reinforcement_progress (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         reinforcement_lesson_id INTEGER NOT NULL REFERENCES reinforcement_lessons(id) ON DELETE CASCADE,
-        completed_at TIMESTAMP,
+        unlocked_at TIMESTAMP DEFAULT NOW(), completed_at TIMESTAMP,
         UNIQUE(user_id, reinforcement_lesson_id)
+    );
+    -- NOVA TABELA PARA CERTIFICADOS
+    CREATE TABLE IF NOT EXISTS certificates (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+        full_name VARCHAR(100) NOT NULL,
+        issued_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, subject_id)
     );
   `;
   await pool.query(createTablesQuery);
-  console.log('Tabelas (versão final) verificadas/criadas com sucesso!');
+  console.log('Tabelas (versão finalíssima) verificadas/criadas com sucesso!');
 }
 
 module.exports = {

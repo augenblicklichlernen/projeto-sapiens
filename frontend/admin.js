@@ -1,8 +1,8 @@
 // =================================================================================
-// ARQUIVO admin.js COMPLETO (Versão 5 - Final com Gerenciamento de Usuários)
+// ARQUIVO admin.js COMPLETO (Versão FINAL com Reforço)
 // =================================================================================
 
-// --- INÍCIO DA LÓGICA DE SENHA ---
+// --- LÓGICA DE SENHA ---
 document.addEventListener('DOMContentLoaded', () => {
     const passwordForm = document.getElementById('password-form');
     if (passwordForm) {
@@ -11,227 +11,166 @@ document.addEventListener('DOMContentLoaded', () => {
             const passwordInput = document.getElementById('admin-password');
             const passwordOverlay = document.getElementById('password-overlay');
             const adminContent = document.getElementById('admin-content');
-
-            // A senha secreta
             if (passwordInput.value === 'augensapien') {
                 passwordOverlay.style.display = 'none';
                 adminContent.style.display = 'block';
-                // Após o login, carrega todos os dados dinâmicos do painel
                 initializeAdminPanel();
             } else {
                 alert('Senha incorreta!');
-                passwordInput.value = '';
             }
         });
     }
 });
-// --- FIM DA LÓGICA DE SENHA ---
 
-
-// URL da sua API Backend. VERIFIQUE SE ESTÁ CORRETA!
+// --- CONFIGURAÇÃO E ELEMENTOS GLOBAIS ---
 const API_URL = 'https://sapiens-backend-ogz2.onrender.com';
-
-// --- ELEMENTOS GLOBAIS DA PÁGINA ---
 const addSubjectForm = document.getElementById('add-subject-form');
 const addLessonForm = document.getElementById('add-lesson-form');
+const addRfForm = document.getElementById('add-reinforcement-form');
 const selectSubject = document.getElementById('select-subject');
+const selectTriggerLesson = document.getElementById('select-trigger-lesson');
 const manageSubjectsList = document.getElementById('manage-subjects-list');
 const manageLessonsList = document.getElementById('manage-lessons-list');
 const manageUsersList = document.getElementById('manage-users-list');
 
+// --- FUNÇÃO DE INICIALIZAÇÃO DO PAINEL ---
+function initializeAdminPanel() {
+    populateSubjects();
+    populateAllLessonsSelect();
+    loadManageableSubjects();
+    loadManageableLessons();
+    loadManageableUsers();
+    renderRfQuestionFields(5);
+}
 
-// =================================================================================
-// FUNÇÕES DE ADIÇÃO DE CONTEÚDO
-// =================================================================================
+// --- ADIÇÃO DE CONTEÚDO ---
+addSubjectForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('subject-name').value;
+    const color_hex = document.getElementById('subject-color').value;
+    try {
+        const res = await fetch(`${API_URL}/api/admin/subject`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, color_hex }) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        alert(`Matéria "${data.name}" criada com sucesso!`);
+        addSubjectForm.reset();
+        initializeAdminPanel();
+    } catch (error) { alert(`Erro: ${error.message}`); }
+});
 
-// --- Lógica para ADICIONAR Matérias ---
-if (addSubjectForm) {
-    addSubjectForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('subject-name').value;
-        const color_hex = document.getElementById('subject-color').value;
+addLessonForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+        const lessonData = {
+            subject_id: document.getElementById('select-subject').value,
+            title: document.getElementById('lesson-title').value,
+            lesson_order: document.getElementById('lesson-order').value,
+            video_url: document.getElementById('video-url').value,
+            image_url: document.getElementById('image-url').value,
+            audio_url: document.getElementById('audio-url').value,
+            lesson_text: document.getElementById('lesson-text').value,
+            q1_time: document.getElementById('q1-time').value,
+            q1_text: document.getElementById('q1-text').value,
+            q1_options: Array.from(document.querySelectorAll('.q1-option')).map(i => i.value),
+            q2_time: document.getElementById('q2-time').value,
+            q2_variants: [
+                { text: document.querySelectorAll('.q2-text')[0].value, options: Array.from(document.querySelectorAll('.q2-option-a')).map(i => i.value) },
+                { text: document.querySelectorAll('.q2-text')[1].value, options: Array.from(document.querySelectorAll('.q2-option-b')).map(i => i.value) },
+                { text: document.querySelectorAll('.q2-text')[2].value, options: Array.from(document.querySelectorAll('.q2-option-c')).map(i => i.value) }
+            ]
+        };
+        const res = await fetch(`${API_URL}/api/admin/lesson`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lessonData) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        alert(`Lição "${data.title}" adicionada com sucesso!`);
+        addLessonForm.reset();
+        initializeAdminPanel();
+    } catch (error) { alert(`Erro ao adicionar lição: ${error.message}`); }
+});
 
-        try {
-            const response = await fetch(`${API_URL}/api/admin/subject`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, color_hex })
+addRfForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+        const questions = [];
+        document.querySelectorAll('.rf-question-block').forEach(block => {
+            questions.push({
+                text: block.querySelector('.rf-q-text').value,
+                options: Array.from(block.querySelectorAll('.rf-q-option')).map(i => i.value),
+                time: block.querySelector('.rf-q-time').value,
             });
-            const responseText = await response.text();
-            if (!response.ok) {
-                 try { const errorData = JSON.parse(responseText); throw new Error(errorData.message); }
-                 catch(e) { throw new Error(responseText || 'Erro desconhecido do servidor.'); }
+        });
+        const rfData = {
+            title: document.getElementById('rf-title').value,
+            trigger_lesson_id: document.getElementById('select-trigger-lesson').value,
+            content: {
+                video_url: document.getElementById('rf-video-url').value,
+                image_url: document.getElementById('rf-image-url').value,
+                audio_url: document.getElementById('rf-audio-url').value,
+                text: document.getElementById('rf-text').value,
+                questions: questions
             }
-            const data = JSON.parse(responseText);
-            alert(`Matéria "${data.name}" criada com sucesso!`);
-            addSubjectForm.reset();
-            populateSubjects();
-            loadManageableSubjects();
-        } catch (error) {
-            alert(`Erro ao adicionar matéria: ${error.message}`);
-        }
-    });
-}
-
-// --- Lógica para ADICIONAR Lições ---
-if (addLessonForm) {
-    addLessonForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        try {
-            const lessonData = {
-                subject_id: document.getElementById('select-subject').value,
-                title: document.getElementById('lesson-title').value,
-                lesson_order: document.getElementById('lesson-order').value,
-                video_url: document.getElementById('video-url').value,
-                image_url: document.getElementById('image-url').value,
-                audio_url: document.getElementById('audio-url').value,
-                lesson_text: document.getElementById('lesson-text').value,
-                q1_time: document.getElementById('q1-time').value,
-                q1_text: document.getElementById('q1-text').value,
-                q1_options: Array.from(document.querySelectorAll('.q1-option')).map(input => input.value),
-                q2_time: document.getElementById('q2-time').value,
-                q2_variants: [
-                    { text: document.querySelectorAll('.q2-text')[0].value, options: Array.from(document.querySelectorAll('.q2-option-a')).map(i => i.value) },
-                    { text: document.querySelectorAll('.q2-text')[1].value, options: Array.from(document.querySelectorAll('.q2-option-b')).map(i => i.value) },
-                    { text: document.querySelectorAll('.q2-text')[2].value, options: Array.from(document.querySelectorAll('.q2-option-c')).map(i => i.value) }
-                ]
-            };
-            const response = await fetch(`${API_URL}/api/admin/lesson`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lessonData) });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'O servidor retornou um erro.');
-            alert(`Lição "${data.title}" adicionada com sucesso!`);
-            addLessonForm.reset();
-            loadManageableLessons();
-        } catch (error) {
-            console.error('Erro detalhado ao adicionar lição:', error);
-            alert(`Erro ao adicionar lição: ${error.message}`);
-        }
-    });
-}
-
-
-// =================================================================================
-// FUNÇÕES DE CARREGAMENTO E GERENCIAMENTO (EXCLUSÃO)
-// =================================================================================
-
-// Função para buscar as matérias e popular o <select> no formulário de lições
-async function populateSubjects() {
-    if (!selectSubject) return;
-    try {
-        const response = await fetch(`${API_URL}/api/content/subjects`);
-        const subjects = await response.json();
-        selectSubject.innerHTML = '';
-        if (subjects.length === 0) {
-             selectSubject.innerHTML = '<option value="">Cadastre uma matéria primeiro</option>';
-             return;
-        }
-        subjects.forEach(subject => {
-            selectSubject.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
-        });
-    } catch (error) { selectSubject.innerHTML = '<option value="">Erro ao carregar</option>'; }
-}
-
-// Função para carregar as matérias na área de gerenciamento
-async function loadManageableSubjects() {
-    if (!manageSubjectsList) return;
-    try {
-        const response = await fetch(`${API_URL}/api/content/subjects`);
-        const subjects = await response.json();
-        manageSubjectsList.innerHTML = '';
-        if (subjects.length === 0) {
-            manageSubjectsList.innerHTML = '<p>Nenhuma matéria para gerenciar.</p>';
-            return;
-        }
-        subjects.forEach(subject => {
-            manageSubjectsList.innerHTML += `<div class="manage-item"><span>${subject.name}</span> <button class="delete-btn" data-id="${subject.id}" data-type="subject">Excluir</button></div>`;
-        });
-    } catch (error) { manageSubjectsList.innerHTML = '<p>Erro ao carregar matérias.</p>'; }
-}
-
-// Função para carregar TODAS as lições na área de gerenciamento
-async function loadManageableLessons() {
-    if (!manageLessonsList) return;
-    try {
-        const subjectsResponse = await fetch(`${API_URL}/api/content/subjects`);
-        const subjects = await subjectsResponse.json();
-        manageLessonsList.innerHTML = '';
-        if (subjects.length === 0) {
-            manageLessonsList.innerHTML = '<p>Nenhuma lição para gerenciar.</p>';
-            return;
-        }
-        let hasLessons = false;
-        for (const subject of subjects) {
-            const lessonsResponse = await fetch(`${API_URL}/api/content/lessons/${subject.id}`);
-            const lessons = await lessonsResponse.json();
-            if(lessons.length > 0) hasLessons = true;
-            lessons.forEach(lesson => {
-                 manageLessonsList.innerHTML += `<div class="manage-item"><span><strong>${subject.name}:</strong> ${lesson.title}</span> <button class="delete-btn" data-id="${lesson.id}" data-type="lesson">Excluir</button></div>`;
-            });
-        }
-        if (!hasLessons) {
-             manageLessonsList.innerHTML = '<p>Nenhuma lição para gerenciar.</p>';
-        }
-    } catch (error) { manageLessonsList.innerHTML = '<p>Erro ao carregar lições.</p>'; }
-}
-
-// Função para carregar os usuários na área de gerenciamento
-async function loadManageableUsers() {
-    if (!manageUsersList) return;
-    try {
-        const response = await fetch(`${API_URL}/api/admin/users`);
-        const users = await response.json();
-        manageUsersList.innerHTML = '';
-        if (users.length === 0) {
-            manageUsersList.innerHTML = '<p>Nenhum usuário para gerenciar.</p>';
-            return;
-        }
-        users.forEach(user => {
-            manageUsersList.innerHTML += `<div class="manage-item"><span>${user.username}</span> <button class="delete-btn" data-id="${user.id}" data-type="user">Excluir</button></div>`;
-        });
-    } catch (error) { manageUsersList.innerHTML = '<p>Erro ao carregar usuários.</p>'; }
-}
-
-
-// Função genérica para DELETAR um item (matéria, lição ou usuário)
-async function deleteItem(type, id) {
-    const confirmation = confirm(`Você tem CERTEZA que quer excluir este(a) ${type}? A ação não pode ser desfeita.`);
-    if (!confirmation) return;
-    try {
-        const response = await fetch(`${API_URL}/api/admin/${type}/${id}`, { method: 'DELETE' });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message);
-        alert(data.message);
-        initializeAdminPanel(); // Recarrega todas as listas
-    } catch (error) {
-        alert(`Erro ao excluir: ${error.message}`);
-    }
-}
-
-// "Ouvinte" de eventos para os cliques nos botões de exclusão
-document.body.addEventListener('click', (e) => {
-    if (e.target && e.target.classList.contains('delete-btn')) {
-        const id = e.target.dataset.id;
-        const type = e.target.dataset.type;
-        deleteItem(type, id);
-    }
+        };
+        const res = await fetch(`${API_URL}/api/admin/reinforcement-lesson`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rfData) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        alert('Lição de reforço criada com sucesso!');
+        addRfForm.reset();
+    } catch (error) { alert(`Erro: ${error.message}`); }
 });
 
 
-// Estilos para a nova área de gerenciamento (adicionados via JS para simplicidade)
-const style = document.createElement('style');
-style.innerHTML = `
-    .manage-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px; }
-    .delete-btn { background-color: #e53e3e; color: white; padding: 5px 10px; font-size: 0.8rem; }
-`;
-document.head.appendChild(style);
+// --- CARREGAMENTO DE DADOS E GERENCIAMENTO (EXCLUSÃO) ---
+async function populateSubjects() { /* ...código de populateSubjects como antes... */ }
+async function loadManageableSubjects() { /* ...código de loadManageableSubjects como antes... */ }
+async function loadManageableLessons() { /* ...código de loadManageableLessons como antes... */ }
+async function loadManageableUsers() { /* ...código de loadManageableUsers como antes... */ }
+async function deleteItem(type, id) { /* ...código de deleteItem como antes... */ }
+document.body.addEventListener('click', e => { if (e.target?.classList.contains('delete-btn')) deleteItem(e.target.dataset.type, e.target.dataset.id); });
 
-// =================================================================================
-// FUNÇÃO DE INICIALIZAÇÃO DO PAINEL
-// =================================================================================
-// Esta função é chamada uma vez, após a senha ser inserida corretamente.
-function initializeAdminPanel() {
-    populateSubjects();
-    loadManageableSubjects();
-    loadManageableLessons();
-    loadManageableUsers(); // A nova função é chamada aqui.
+// --- FUNÇÕES ESPECÍFICAS DO PAINEL DE REFORÇO ---
+async function populateAllLessonsSelect() {
+    if (!selectTriggerLesson) return;
+    try {
+        const subjectsRes = await fetch(`${API_URL}/api/content/subjects`);
+        const subjects = await subjectsRes.json();
+        selectTriggerLesson.innerHTML = '';
+        for (const subject of subjects) {
+            const lessonsRes = await fetch(`${API_URL}/api/content/lessons/${subject.id}`);
+            const lessons = await lessonsRes.json();
+            if (lessons.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = subject.name;
+                lessons.forEach(lesson => {
+                    optgroup.innerHTML += `<option value="${lesson.id}">${lesson.title}</option>`;
+                });
+                selectTriggerLesson.appendChild(optgroup);
+            }
+        }
+    } catch (error) { console.error(error); }
 }
+
+function renderRfQuestionFields(count) {
+    const container = document.getElementById('rf-questions-container');
+    if (!container) return;
+    container.innerHTML = '<legend>Questões de Treino</legend>';
+    for (let i = 1; i <= count; i++) {
+        container.innerHTML += `
+            <div class="rf-question-block" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
+                <h4>Questão ${i}</h4>
+                <label>Texto da Questão</label><textarea class="rf-q-text"></textarea>
+                <label>Tempo (s)</label><input type="number" class="rf-q-time" value="60">
+                <label>5 Alternativas (a 1ª é a correta)</label>
+                <input type="text" class="rf-q-option" placeholder="Alternativa Correta">
+                <input type="text" class="rf-q-option" placeholder="Alternativa 2">
+                <input type="text" class="rf-q-option" placeholder="Alternativa 3">
+                <input type="text" class="rf-q-option" placeholder="Alternativa 4">
+                <input type="text" class="rf-q-option" placeholder="Alternativa 5">
+            </div>`;
+    }
+}
+// As funções que estavam como placeholder antes
+async function populateSubjects() { if (!selectSubject) return; try { const res=await fetch(`${API_URL}/api/content/subjects`); const subjects=await res.json(); selectSubject.innerHTML=''; if(subjects.length===0){selectSubject.innerHTML='<option value="">Cadastre uma matéria primeiro</option>';return} subjects.forEach(subject=>{selectSubject.innerHTML+=`<option value="${subject.id}">${subject.name}</option>`})}catch(e){selectSubject.innerHTML='<option value="">Erro ao carregar</option>'}}
+async function loadManageableSubjects() { if (!manageSubjectsList) return; try { const res=await fetch(`${API_URL}/api/content/subjects`); const subjects=await res.json(); manageSubjectsList.innerHTML=''; if(subjects.length===0){manageSubjectsList.innerHTML='<p>Nenhuma matéria para gerenciar.</p>';return} subjects.forEach(subject=>{manageSubjectsList.innerHTML+=`<div class="manage-item"><span>${subject.name}</span> <button class="delete-btn" data-id="${subject.id}" data-type="subject">Excluir</button></div>`})}catch(e){manageSubjectsList.innerHTML='<p>Erro ao carregar matérias.</p>'}}
+async function loadManageableLessons() { if(!manageLessonsList)return;try{const subjectsRes=await fetch(`${API_URL}/api/content/subjects`);const subjects=await subjectsRes.json();manageLessonsList.innerHTML='';if(subjects.length===0){manageLessonsList.innerHTML='<p>Nenhuma lição para gerenciar.</p>';return}let hasLessons=!1;for(const subject of subjects){const lessonsRes=await fetch(`${API_URL}/api/content/lessons/${subject.id}`);const lessons=await lessonsRes.json();if(lessons.length>0)hasLessons=!0;lessons.forEach(lesson=>{manageLessonsList.innerHTML+=`<div class="manage-item"><span><strong>${subject.name}:</strong> ${lesson.title}</span> <button class="delete-btn" data-id="${lesson.id}" data-type="lesson">Excluir</button></div>`})}if(!hasLessons){manageLessonsList.innerHTML='<p>Nenhuma lição para gerenciar.</p>'}}catch(e){manageLessonsList.innerHTML='<p>Erro ao carregar lições.</p>'}}
+async function loadManageableUsers() { if (!manageUsersList) return; try { const res=await fetch(`${API_URL}/api/admin/users`); const users=await res.json(); manageUsersList.innerHTML=''; if(users.length===0){manageUsersList.innerHTML='<p>Nenhum usuário para gerenciar.</p>';return} users.forEach(user=>{manageUsersList.innerHTML+=`<div class="manage-item"><span>${user.username}</span> <button class="delete-btn" data-id="${user.id}" data-type="user">Excluir</button></div>`})}catch(e){manageUsersList.innerHTML='<p>Erro ao carregar usuários.</p>'}}
+async function deleteItem(type,id){const c=confirm(`Você tem CERTEZA que quer excluir este(a) ${type}? A ação não pode ser desfeita.`);if(!c)return;try{const res=await fetch(`${API_URL}/api/admin/${type}/${id}`,{method:'DELETE'});const data=await res.json();if(!res.ok)throw new Error(data.message);alert(data.message);initializeAdminPanel()}catch(e){alert(`Erro ao excluir: ${e.message}`)}}

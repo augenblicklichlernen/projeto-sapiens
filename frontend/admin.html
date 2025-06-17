@@ -99,6 +99,40 @@
             </div>
         </section>
         <!-- FIM DA NOVA SEÇÃO DE GERENCIAMENTO DE USUÁRIOS -->
+        <!-- ...Fim da seção de Gerenciar Usuários... -->
+        </section>
+
+        <!-- INÍCIO DA SEÇÃO DE LIÇÃO DE REFORÇO -->
+        <section class="admin-section">
+            <h2>Adicionar Lição de Reforço</h2>
+            <form id="add-reinforcement-form">
+                <fieldset>
+                    <legend>Vincular à Lição Principal</legend>
+                    <label for="select-trigger-lesson">Esta lição de reforço será desbloqueada após o aluno iniciar o quiz da lição:</label>
+                    <select id="select-trigger-lesson" required></select>
+                </fieldset>
+                <fieldset>
+                    <legend>Conteúdo da Lição de Reforço</legend>
+                    <label>Título</label>
+                    <input type="text" id="rf-title" required>
+                    <label>URL do Vídeo</label>
+                    <input type="text" id="rf-video-url">
+                    <label>URL da Imagem</label>
+                    <input type="text" id="rf-image-url">
+                    <label>URL do Áudio</label>
+                    <input type="text" id="rf-audio-url">
+                    <label>Texto Explicativo</label>
+                    <textarea id="rf-text"></textarea>
+                </fieldset>
+                <fieldset id="rf-questions-container">
+                    <legend>Questões de Treino (5)</legend>
+                    <!-- As 5 questões serão geradas aqui pelo JS -->
+                </fieldset>
+                <button type="button" id="add-rf-question-btn">Adicionar Outra Questão</button>
+                <button type="submit" style="width:100%; margin-top:15px;">Salvar Lição de Reforço</button>
+            </form>
+        </section>
+        <!-- FIM DA SEÇÃO DE LIÇÃO DE REFORÇO -->
 
         <section class="admin-section">
         <!-- Início da seção "Adicionar Nova Lição" ... -->
