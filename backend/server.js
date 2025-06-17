@@ -1,7 +1,30 @@
 // Importa as ferramentas necessárias
 require('dotenv').config();
 const express = require('express');
+// =================================================================================
+// COLE ESTE BLOCO NO server.js, LOGO APÓS a linha `const app = express();`
+// =================================================================================
+
 const cors = require('cors');
+
+// --- INÍCIO DA CONFIGURAÇÃO CORS FINAL E ROBUSTA ---
+const whitelist = ['https://sapiens-frontend-3g1w.onrender.com']; // URL do seu frontend
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permite requisições sem 'origin' (como apps mobile ou Postman) ou se a origem estiver na whitelist
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
+  optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
+// --- FIM DA CONFIGURAÇÃO CORS ---
 const db = require('./database'); // Nosso arquivo de conexão com o banco de dados
 const authRoutes = require('./routes/auth');
 const contentRoutes = require('./routes/content');
