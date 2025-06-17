@@ -41,6 +41,7 @@ app.get('/', (req, res) => {
   res.send('O cérebro do Projeto Sapiens está no ar!');
 });
 
+//forçar deploy
 // O cérebro começa a "ouvir" por requisições na porta definida
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
