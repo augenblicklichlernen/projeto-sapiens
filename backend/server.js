@@ -15,7 +15,6 @@ const app = express();
 
 // =================================================================================
 // =================================================================================
-const cors = require('cors');
 
 // --- CONFIGURAÇÃO CORS UNIVERSAL ---
 app.use(cors()); // Permite todas as origens por padrão. É a forma mais simples e eficaz para começar.
