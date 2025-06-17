@@ -66,7 +66,7 @@ router.post('/submit-quiz', async (req, res) => {
                     'UPDATE user_lesson_progress SET q2_attempts = $1, blocked_until = $2 WHERE user_id = $3 AND lesson_id = $4',
                     [newAttempts, oneHourLater, userId, lessonId]
                 );
-                return res.json({ status: 'blocked', message: 'Você errou novamente. Lição bloqueada por 1 hora.' });
+                return res.json({ status: 'blocked', message: 'Número máximo de tentativas. Tente esta lição novamente mais tarde.' });
             } else { // Errou pela 1a vez
                 await db.query('UPDATE user_lesson_progress SET q2_attempts = $1 WHERE user_id = $2 AND lesson_id = $3', [newAttempts, userId, lessonId]);
                 return res.json({ status: 'retry', message: 'Resposta incorreta. Você será redirecionado para o início da lição.' });
@@ -84,6 +84,36 @@ router.post('/submit-quiz', async (req, res) => {
         
         res.json({ status: 'continue', message: 'Questão de treino finalizada.' });
     } catch (error) { res.status(500).json({ message: 'Erro ao processar resposta.'}); }
+});
+
+// ROTA PARA BUSCAR O SCORE DO ALUNO
+router.get('/scores/user/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const query = `
+            SELECT 
+                s.name, 
+                s.color_hex, 
+                (SELECT COUNT(*) FROM lessons l WHERE l.subject_id = s.id) as total_lessons,
+                (SELECT SUM(ulp.score) FROM user_lesson_progress ulp WHERE ulp.user_id = $1 AND ulp.lesson_id IN (SELECT id FROM lessons WHERE subject_id = s.id)) as user_score
+            FROM 
+                subjects s
+            ORDER BY s.name;
+        `;
+        const result = await db.query(query, [userId]);
+        
+        const scores = result.rows.map(row => ({
+            name: row.name,
+            color_hex: row.color_hex,
+            total_lessons: parseInt(row.total_lessons, 10),
+            user_score: parseInt(row.user_score, 10) || 0
+        }));
+
+        res.json(scores);
+    } catch (error) {
+        console.error("Erro ao buscar scores:", error);
+        res.status(500).json({ message: 'Erro ao buscar scores.' });
+    }
 });
 
 module.exports = router;

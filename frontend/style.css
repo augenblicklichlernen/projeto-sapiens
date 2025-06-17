@@ -208,3 +208,45 @@ input[type="text"], input[type="password"] {
     font-size: 1.2rem;
     background-color: #48bb78;
 }
+
+/* --- ESTILOS DA BARRA DE SCORE --- */
+#score-bar-container {
+    position: relative;
+}
+#score-toggle-btn {
+    background-color: #f5b041; /* Amarelo/Laranja */
+}
+#score-panel {
+    display: none; /* Começa escondido */
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 10px;
+    background-color: white;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    width: 250px;
+    z-index: 100;
+    padding: 15px;
+}
+#score-panel.visible {
+    display: block;
+}
+#score-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+#score-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+#score-list li:last-child {
+    border-bottom: none;
+}
+#score-list .score-name {
+    font-weight: bold;
+}
