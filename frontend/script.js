@@ -65,7 +65,163 @@ async function loadLessons(subjectId, subjectName) { /* ... função sem mudanç
 async function renderLessonContent(lessonId) { /* ... função sem mudanças ... */ }
 function createYouTubePlayer(lesson) { /* ... função sem mudanças ... */ }
 function showPostVideoContent() { /* ... função sem mudanças ... */ }
-async function renderQuiz(lesson) { /* ... função sem mudanças ... */ }
+// =================================================================================
+// COLE ESTE NOVO BLOCO NO LUGAR DA ANTIGA FUNÇÃO renderQuiz
+// =================================================================================
+async function renderQuiz(lesson) {
+    console.log("Iniciando renderQuiz para a lição:", lesson.title);
+    const quizWrapper = document.getElementById('quiz-content-wrapper');
+    quizWrapper.style.display = 'block';
+    quizWrapper.innerHTML = '<div id="quiz-content"></div>';
+    const quizContent = document.getElementById('quiz-content');
+    scrollToElement(quizWrapper);
+
+    // Desbloqueia lição de reforço
+    fetch(`${API_URL}/api/content/unlock-reinforcement`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ userId, triggerLessonId: lesson.id })})
+        .then(res => res.json()).then(data => { if (data.unlocked) showReinforcementToast(data.title); });
+
+    let timerInterval;
+    let selectedOption = null;
+
+    function startTimer(duration, display, onTimeUp) {
+        let timer = duration;
+        display.textContent = `Tempo: ${timer}s`;
+        timerInterval = setInterval(() => {
+            timer--;
+            display.textContent = `Tempo: ${timer}s`;
+            if (timer <= 0) {
+                clearInterval(timerInterval);
+                console.log("Tempo esgotado!");
+                onTimeUp();
+            }
+        }, 1000);
+    }
+
+    function showFeedback(isCorrect, explanation) {
+        console.log("Mostrando feedback:", explanation);
+        const feedbackDiv = document.createElement('div');
+        feedbackDiv.id = 'quiz-feedback';
+        feedbackDiv.className = isCorrect ? 'correct' : 'incorrect';
+        feedbackDiv.innerHTML = `<p>${explanation}</p><button id="next-question-btn"></button>`;
+        const confirmBtn = quizContent.querySelector('#confirm-answer-btn');
+        if (confirmBtn) {
+             confirmBtn.style.display = 'none'; // Esconde o botão de confirmar
+             confirmBtn.insertAdjacentElement('afterend', feedbackDiv);
+        }
+        return feedbackDiv.querySelector('#next-question-btn');
+    }
+
+    async function handleAnswer(questionType, correctAnswer, selectedAnswerText, feedbackPrefix = '') {
+        console.log(`Manipulando resposta para ${questionType}. Correta: ${correctAnswer}, Selecionada: ${selectedAnswerText}`);
+        clearInterval(timerInterval);
+        quizContent.querySelectorAll('.option-btn').forEach(btn => { btn.disabled = true; });
+        const confirmBtn = quizContent.querySelector('#confirm-answer-btn');
+        if (confirmBtn) confirmBtn.disabled = true;
+
+        const isCorrect = selectedAnswerText === correctAnswer;
+
+        quizContent.querySelectorAll('.option-btn').forEach(btn => {
+            if (btn.textContent === correctAnswer) btn.classList.add('correct');
+            if (btn === selectedOption && !isCorrect) btn.classList.add('incorrect');
+        });
+        
+        if (questionType === 'q1') {
+            const feedbackText = feedbackPrefix + (isCorrect ? " Correto! Este foi um treino." : " Incorreto. A resposta certa está em verde.");
+            const nextBtn = showFeedback(isCorrect, feedbackText);
+            nextBtn.textContent = "Iniciar Questão 2";
+            nextBtn.addEventListener('click', renderQuestion2);
+        } else if (questionType === 'q2') {
+            const res = await fetch(`${API_URL}/api/content/submit-quiz`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ userId, lessonId: lesson.id, isCorrect }) });
+            const result = await res.json();
+            const nextBtn = showFeedback(isCorrect, feedbackPrefix + " " + result.message);
+            
+            if (result.status === 'completed') {
+                nextBtn.textContent = "Ver Próxima Lição";
+                nextBtn.addEventListener('click', () => { updateScores(); loadLessons(lesson.subject_id, ''); });
+            } else if (result.status === 'subject_finished') {
+                nextBtn.textContent = "Gerar Certificado";
+                nextBtn.addEventListener('click', () => handleSubjectFinished(result.subjectId));
+            } else {
+                nextBtn.textContent = "Voltar ao Vídeo";
+                nextBtn.addEventListener('click', () => renderLessonContent(lesson.id));
+            }
+        }
+    }
+    
+    async function renderQuestion2() {
+        console.log("Renderizando Questão 2.");
+        // ... (resto do código da Q2 como antes, mas vamos garantir que esteja completo)
+        const progressRes = await fetch(`${API_URL}/api/content/start-lesson/${lesson.id}/user/${userId}`);
+        const progress = await progressRes.json();
+        
+        if (progress.blocked_until && new Date() < new Date(progress.blocked_until)) {
+            alert(`Lição bloqueada. Tente novamente em ${new Date(progress.blocked_until).toLocaleTimeString()}`);
+            return loadLessons(lesson.subject_id, '');
+        }
+
+        const seenVariants = progress.q2_variants_seen || [];
+        const availableVariants = [0, 1, 2].filter(i => !seenVariants.includes(i));
+        if (availableVariants.length === 0) {
+            alert('Você já tentou todas as variantes. Avançando com penalidade.');
+            return loadLessons(lesson.subject_id, '');
+        }
+        const variantIndex = availableVariants[Math.floor(Math.random() * availableVariants.length)];
+        const question = lesson.q2_variants[variantIndex];
+        const correctAnswer = question.options[0];
+
+        quizContent.innerHTML = `<h3>Questão 2 (Avaliativa)</h3><p>${question.text}</p><div id="timer"></div><div class="options-container"></div><button id="confirm-answer-btn" disabled>Confirmar</button>`;
+        const optionsContainer = quizContent.querySelector('.options-container');
+        const timerDisplay = document.getElementById('timer');
+        
+        const onTimeUp = () => handleAnswer('q2', correctAnswer, null, 'O tempo acabou!');
+        startTimer(lesson.q2_time, timerDisplay, onTimeUp);
+        
+        [...question.options].sort(() => Math.random() - 0.5).forEach(option => { optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`; });
+        
+        selectedOption = null;
+        optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (selectedOption) selectedOption.classList.remove('selected');
+                selectedOption = btn;
+                btn.classList.add('selected');
+                quizContent.querySelector('#confirm-answer-btn').disabled = false;
+            });
+        });
+        quizContent.querySelector('#confirm-answer-btn').addEventListener('click', () => handleAnswer('q2', correctAnswer, selectedOption ? selectedOption.textContent : null));
+    }
+
+    function renderQuestion1() {
+        console.log("Renderizando Questão 1.");
+        const correctAnswer = lesson.q1_options[0];
+        quizContent.innerHTML = `<h3>Questão 1 (Treino)</h3><p>${lesson.q1_text}</p><div id="timer"></div><div class="options-container"></div><button id="confirm-answer-btn" disabled>Confirmar</button>`;
+        const optionsContainer = quizContent.querySelector('.options-container');
+        const timerDisplay = document.getElementById('timer');
+        
+        const onTimeUp = () => handleAnswer('q1', correctAnswer, null, 'O tempo acabou!');
+        startTimer(lesson.q1_time, timerDisplay, onTimeUp);
+
+        [...lesson.q1_options].sort(() => Math.random() - 0.5).forEach(option => { optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`; });
+        
+        selectedOption = null;
+        optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (selectedOption) selectedOption.classList.remove('selected');
+                selectedOption = btn;
+                btn.classList.add('selected');
+                quizContent.querySelector('#confirm-answer-btn').disabled = false;
+            });
+        });
+        const confirmBtn = quizContent.querySelector('#confirm-answer-btn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => handleAnswer('q1', correctAnswer, selectedOption ? selectedOption.textContent : null));
+        }
+    }
+
+    renderQuestion1();
+}
+
+
+
 function showReinforcementToast(title) { /* ... função sem mudanças ... */ }
 async function handleSubjectFinished(subjectId) { /* ... função sem mudanças ... */ }
 

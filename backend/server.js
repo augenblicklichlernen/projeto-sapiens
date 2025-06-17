@@ -13,21 +13,16 @@ const adminRoutes = require('./routes/admin');
 // 1. INICIALIZA O SERVIDOR EXPRESS
 const app = express();
 
-// 2. CONFIGURA O CORS
-const whitelist = ['https://sapiens-frontend-3g1w.onrender.com']; // URL do seu frontend
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || whitelist.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: true,
-  optionsSuccessStatus: 204
-};
-app.use(cors(corsOptions));
+// =================================================================================
+// =================================================================================
+const cors = require('cors');
+
+// --- CONFIGURAÇÃO CORS UNIVERSAL ---
+app.use(cors()); // Permite todas as origens por padrão. É a forma mais simples e eficaz para começar.
+
+// Habilita o pre-flight para todas as rotas
+app.options('*', cors()); 
+// --- FIM DA CONFIGURAÇÃO CORS ---
 
 // 3. CONFIGURA O RESTO DO MIDDLEWARE E ROTAS
 app.use(express.json());
