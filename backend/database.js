@@ -30,7 +30,7 @@ async function createTables() {
     CREATE TABLE IF NOT EXISTS subjects (
       id SERIAL PRIMARY KEY,
       name VARCHAR(100) UNIQUE NOT NULL,
-      color_hex VARCHAR(7) NOT NULL
+      color_hex VARCHAR(7) NOT NULL,
       subject_order INTEGER DEFAULT 0
     );
     CREATE TABLE IF NOT EXISTS lessons (

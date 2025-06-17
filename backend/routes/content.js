@@ -10,7 +10,7 @@ const router = express.Router();
 router.get('/subjects', async (req, res) => {
     try {
         // Voltando para a ordenação por nome para estabilizar o sistema
-        const result = await db.query('SELECT * FROM subjects ORDER BY name');
+        const result = await db.query('SELECT * FROM subjects ORDER BY subject_order');
         res.json(result.rows);
     } catch (error) {
         console.error("ERRO FATAL em /api/content/subjects:", error);
