@@ -1,5 +1,5 @@
 // =================================================================================
-// ARQUIVO script.js COMPLETO E FINAL
+// ARQUIVO script.js COMPLETO (VERSÃO FINAL REAL)
 // =================================================================================
 
 const API_URL = 'https://sapiens-backend-ogz2.onrender.com';
@@ -14,41 +14,12 @@ let token = localStorage.getItem('token');
 let userId = localStorage.getItem('userId');
 
 // =================================================================================
-// FUNÇÕES DE UTILIDADE E INICIALIZAÇÃO
+// FUNÇÕES DE UTILIDADE
 // =================================================================================
-function showView(viewId) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById(viewId)?.classList.add('active'); }
+function showView(viewId) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); const view = document.getElementById(viewId); if(view) view.classList.add('active'); }
 function scrollToElement(element) { if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 
-// =================================================================================
-// INICIALIZAÇÃO DO APLICATIVO (VERSÃO CORRIGIDA)
-// =================================================================================
-function initializeApp() {
-    // Pega os dados do armazenamento local
-    token = localStorage.getItem('token');
-    userId = localStorage.getItem('userId');
 
-    // Configura os ouvintes de eventos para os botões e formulários
-    document.getElementById('show-register')?.addEventListener('click', (e) => { e.preventDefault(); showView('register-view'); });
-    document.getElementById('show-login')?.addEventListener('click', (e) => { e.preventDefault(); showView('login-view'); });
-    document.getElementById('login-form')?.addEventListener('submit', handleLogin);
-    document.getElementById('register-form')?.addEventListener('submit', handleRegister);
-
-    if (token && userId) {
-        // Se o usuário está logado
-        showView('subjects-view');
-        fetchSubjects(); // <--- O PONTO CRÍTICO
-        setupUserAreaAndScores();
-    } else {
-        // Se o usuário não está logado
-        showView('login-view');
-        // Garante que a área do usuário mostre apenas o botão de login inicial
-        document.getElementById('user-area').innerHTML = '<button id="login-button">Entrar</button>';
-        document.getElementById('login-button').addEventListener('click', () => showView('login-view'));
-    }
-}
-
-// O ponto de entrada de tudo quando a página carrega
-document.addEventListener('DOMContentLoaded', initializeApp);
 // =================================================================================
 // LÓGICA DE AUTENTICAÇÃO E BARRA DE SCORE
 // =================================================================================
@@ -61,7 +32,6 @@ async function handleLogin(e) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
         localStorage.setItem('token', data.token); localStorage.setItem('username', data.username); localStorage.setItem('userId', data.userId);
-        token = data.token; userId = data.userId;
         initializeApp();
     } catch (error) { alert(`Erro no login: ${error.message}`); }
 }
@@ -80,11 +50,9 @@ async function handleRegister(e) {
 function setupUserAreaAndScores() {
     document.getElementById('user-area').innerHTML = `<span>Olá, ${localStorage.getItem('username')}!</span><button id="logout-button">Sair</button>`;
     document.getElementById('logout-button').addEventListener('click', () => { localStorage.clear(); window.location.reload(); });
-    
     const scoreContainer = document.getElementById('score-bar-container');
-    scoreContainer.style.display = 'block';
-    
-    document.getElementById('score-toggle-btn').addEventListener('click', () => {
+    if(scoreContainer) scoreContainer.style.display = 'flex';
+    document.getElementById('score-toggle-btn')?.addEventListener('click', () => {
         const scorePanel = document.getElementById('score-panel');
         scorePanel.classList.toggle('visible');
         if (scorePanel.classList.contains('visible')) updateScores();
@@ -104,22 +72,112 @@ async function updateScores() {
     } catch(error) { console.error("Erro ao atualizar scores:", error); }
 }
 
+
 // =================================================================================
 // LÓGICA DE NAVEGAÇÃO (MATÉRIAS E LIÇÕES)
 // =================================================================================
-async function fetchSubjects() { /* ...código sem mudanças... */ }
-async function loadLessons(subjectId, subjectName) { /* ...código sem mudanças... */ }
+async function fetchSubjects() {
+    if (!subjectsGrid) return;
+    try {
+        const response = await fetch(`${API_URL}/api/content/subjects`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!response.ok) throw new Error('Falha na resposta da rede ao buscar matérias.');
+        const subjects = await response.json();
+        while (subjectsGrid.firstChild) { subjectsGrid.removeChild(subjectsGrid.firstChild); }
+        if (subjects.length === 0) {
+            subjectsGrid.innerHTML = '<p>Nenhuma matéria cadastrada ainda.</p>';
+            return;
+        }
+        subjects.forEach(subject => {
+            const card = document.createElement('div');
+            card.className = 'subject-card';
+            card.style.setProperty('--subject-color', subject.color_hex);
+            const cardTitle = document.createElement('h3');
+            cardTitle.textContent = subject.name;
+            card.appendChild(cardTitle);
+            card.addEventListener('click', () => loadLessons(subject.id, subject.name));
+            subjectsGrid.appendChild(card);
+        });
+    } catch (error) { console.error('Erro detalhado em fetchSubjects:', error); subjectsGrid.innerHTML = '<p>Ocorreu um erro ao carregar as matérias.</p>'; }
+}
+
+async function loadLessons(subjectId, subjectName) {
+    showView('lesson-view');
+    lessonView.innerHTML = '<h2>Carregando lições...</h2>';
+    try {
+        const response = await fetch(`${API_URL}/api/content/lessons/${subjectId}`);
+        if (!response.ok) throw new Error('Falha na resposta da rede ao buscar lições.');
+        const lessons = await response.json();
+        let subjectTitle = subjectName ? `<h2>${subjectName}</h2>` : '';
+        let backButton = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar para Matérias</button>`;
+        if (lessons.length === 0) {
+            lessonView.innerHTML = `${backButton}${subjectTitle}<h2>Nenhuma lição disponível.</h2>`;
+            return;
+        }
+        lessonView.innerHTML = `${backButton}${subjectTitle}<ul class="lesson-list"></ul>`;
+        const lessonList = lessonView.querySelector('.lesson-list');
+        const lastCompletedLessonOrder = 0;
+        lessons.forEach(lesson => {
+            const isLocked = lesson.lesson_order > lastCompletedLessonOrder + 1;
+            const listItem = document.createElement('li');
+            listItem.className = `lesson-item ${isLocked ? 'locked' : ''}`;
+            listItem.innerHTML = `<span>Lição ${lesson.lesson_order}: ${lesson.title}</span><button class="start-lesson-btn" data-lesson-id="${lesson.id}" ${isLocked ? 'disabled' : ''}>Iniciar</button>`;
+            lessonList.appendChild(listItem);
+        });
+    } catch (error) { console.error('Erro detalhado em loadLessons:', error); lessonView.innerHTML = `<h2>Erro ao carregar.</h2><p>${error.message}</p>`; }
+}
+
 
 // =================================================================================
 // LÓGICA DA TELA DE LIÇÃO E QUIZ
 // =================================================================================
 document.body.addEventListener('click', e => { if (e.target?.classList.contains('start-lesson-btn')) renderLessonContent(e.target.dataset.lessonId); });
 
-async function renderLessonContent(lessonId) { /* ...código da função inteira sem mudanças... */ }
+async function renderLessonContent(lessonId) {
+    showView('lesson-view');
+    lessonView.innerHTML = `<h2>Carregando lição...</h2>`;
+    try {
+        const lessonRes = await fetch(`${API_URL}/api/content/lesson-detail/${lessonId}`);
+        const lesson = await lessonRes.json();
+        lessonView.innerHTML = `
+            <button class="back-btn" onclick="loadLessons(${lesson.subject_id}, '')">← Voltar</button>
+            <div id="lesson-main-content"><h2>${lesson.title}</h2><div id="video-placeholder"></div>
+            <div id="post-video-content" style="display:none;"><hr><h3>Recursos</h3><img src="${lesson.image_url}" alt="Imagem da lição" style="max-width: 100%; border-radius: 8px;"><br/><audio controls src="${lesson.audio_url}"></audio><br/><button id="show-text-btn">Ver Explicação</button></div>
+            <div id="text-content" style="display:none;"><hr><h3>Explicação</h3><div>${lesson.lesson_text}</div><button id="start-quiz-btn">Iniciar Questões</button></div></div>
+            <div id="quiz-content-wrapper" style="display:none;"></div>`;
+        createYouTubePlayer(lesson);
+    } catch (error) { lessonView.innerHTML = `<h2>Erro.</h2><p>${error.message}</p>`; }
+}
 
-function createYouTubePlayer(lesson) { /* ...código sem mudanças... */ }
+function createYouTubePlayer(lesson) {
+    let progressCheckInterval;
+    const videoId = new URL(lesson.video_url).searchParams.get('v');
+    ytPlayer = new YT.Player('video-placeholder', {
+        height: '480', width: '100%', videoId: videoId,
+        events: {
+            'onStateChange': e => {
+                if (e.data === YT.PlayerState.PLAYING) {
+                    const duration = ytPlayer.getDuration();
+                    progressCheckInterval = setInterval(() => {
+                        if (duration > 0 && (ytPlayer.getCurrentTime() / duration) >= 0.8) {
+                            showPostVideoContent();
+                            clearInterval(progressCheckInterval);
+                        }
+                    }, 1000);
+                } else { clearInterval(progressCheckInterval); }
+            }
+        }
+    });
+    document.getElementById('show-text-btn').addEventListener('click', () => { const tc = document.getElementById('text-content'); tc.style.display = 'block'; scrollToElement(tc); });
+    document.getElementById('start-quiz-btn').addEventListener('click', () => { document.getElementById('lesson-main-content').style.display = 'none'; renderQuiz(lesson); });
+}
 
-function showPostVideoContent() { /* ...código sem mudanças... */ }
+function showPostVideoContent() {
+    const postVideoContent = document.getElementById('post-video-content');
+    if (postVideoContent.style.display === 'none') {
+        postVideoContent.style.display = 'block';
+        scrollToElement(postVideoContent);
+    }
+}
 
 async function renderQuiz(lesson) {
     const quizWrapper = document.getElementById('quiz-content-wrapper');
@@ -127,21 +185,15 @@ async function renderQuiz(lesson) {
     quizWrapper.innerHTML = '<div id="quiz-content"></div>';
     const quizContent = document.getElementById('quiz-content');
     scrollToElement(quizWrapper);
-    
     let timerInterval, selectedOption = null;
 
-    function startTimer(duration, display) {
+    function startTimer(duration, display, onTimeUp) {
         let timer = duration;
         display.textContent = `Tempo: ${timer}s`;
         timerInterval = setInterval(() => {
             timer--;
             display.textContent = `Tempo: ${timer}s`;
-            if (timer <= 0) {
-                clearInterval(timerInterval);
-                const questionType = quizContent.querySelector('h3').textContent.includes('1') ? 'q1' : 'q2';
-                const correctAnswer = questionType === 'q1' ? lesson.q1_options[0] : 'depende da variante';
-                handleAnswer(questionType, correctAnswer, null, 'O tempo acabou!');
-            }
+            if (timer <= 0) { clearInterval(timerInterval); onTimeUp(); }
         }, 1000);
     }
     
@@ -150,7 +202,7 @@ async function renderQuiz(lesson) {
         feedbackDiv.id = 'quiz-feedback';
         feedbackDiv.className = isCorrect ? 'correct' : 'incorrect';
         feedbackDiv.innerHTML = `<p>${explanation}</p><button id="next-question-btn"></button>`;
-        quizContent.querySelector('#confirm-answer-btn').insertAdjacentElement('afterend', feedbackDiv);
+        quizContent.querySelector('#confirm-answer-btn')?.insertAdjacentElement('afterend', feedbackDiv);
         return feedbackDiv.querySelector('#next-question-btn');
     }
 
@@ -200,22 +252,24 @@ async function renderQuiz(lesson) {
             alert('Você já tentou todas as variantes. Avançando com penalidade.');
             return loadLessons(lesson.subject_id, '');
         }
-
         const variantIndex = availableVariants[Math.floor(Math.random() * availableVariants.length)];
         const question = lesson.q2_variants[variantIndex];
         const correctAnswer = question.options[0];
 
         quizContent.innerHTML = `<h3>Questão 2 (Avaliativa)</h3><p>${question.text}</p><div id="timer"></div><div class="options-container"></div><button id="confirm-answer-btn" disabled>Confirmar</button>`;
         const optionsContainer = quizContent.querySelector('.options-container');
+        const timerDisplay = document.getElementById('timer');
+        
+        const onTimeUp = () => handleAnswer('q2', correctAnswer, null, 'O tempo acabou!');
+        startTimer(lesson.q2_time, timerDisplay, onTimeUp);
+        
         [...question.options].sort(() => Math.random() - 0.5).forEach(option => { optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`; });
-        startTimer(lesson.q2_time, document.getElementById('timer'));
         
         selectedOption = null;
         optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (selectedOption) selectedOption.classList.remove('selected');
-                selectedOption = btn;
-                btn.classList.add('selected');
+                selectedOption = btn; btn.classList.add('selected');
                 quizContent.querySelector('#confirm-answer-btn').disabled = false;
             });
         });
@@ -226,15 +280,18 @@ async function renderQuiz(lesson) {
         const correctAnswer = lesson.q1_options[0];
         quizContent.innerHTML = `<h3>Questão 1 (Treino)</h3><p>${lesson.q1_text}</p><div id="timer"></div><div class="options-container"></div><button id="confirm-answer-btn" disabled>Confirmar</button>`;
         const optionsContainer = quizContent.querySelector('.options-container');
+        const timerDisplay = document.getElementById('timer');
+        
+        const onTimeUp = () => handleAnswer('q1', correctAnswer, null, 'O tempo acabou!');
+        startTimer(lesson.q1_time, timerDisplay, onTimeUp);
+
         [...lesson.q1_options].sort(() => Math.random() - 0.5).forEach(option => { optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`; });
-        startTimer(lesson.q1_time, document.getElementById('timer'));
         
         selectedOption = null;
         optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (selectedOption) selectedOption.classList.remove('selected');
-                selectedOption = btn;
-                btn.classList.add('selected');
+                selectedOption = btn; btn.classList.add('selected');
                 quizContent.querySelector('#confirm-answer-btn').disabled = false;
             });
         });
@@ -242,3 +299,27 @@ async function renderQuiz(lesson) {
     }
     renderQuestion1();
 }
+
+
+// =================================================================================
+// INICIALIZAÇÃO DO APLICATIVO
+// =================================================================================
+function initializeApp() {
+    token = localStorage.getItem('token');
+    userId = localStorage.getItem('userId');
+    document.getElementById('show-register')?.addEventListener('click', (e) => { e.preventDefault(); showView('register-view'); });
+    document.getElementById('show-login')?.addEventListener('click', (e) => { e.preventDefault(); showView('login-view'); });
+    document.getElementById('login-form')?.addEventListener('submit', handleLogin);
+    document.getElementById('register-form')?.addEventListener('submit', handleRegister);
+
+    if (token && userId) {
+        showView('subjects-view');
+        fetchSubjects();
+        setupUserAreaAndScores();
+    } else {
+        showView('login-view');
+        document.getElementById('user-area').innerHTML = '<button id="login-button">Entrar</button>';
+        document.getElementById('login-button')?.addEventListener('click', () => showView('login-view'));
+    }
+}
+document.addEventListener('DOMContentLoaded', initializeApp);
