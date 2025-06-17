@@ -1,5 +1,5 @@
 // =================================================================================
-// ARQUIVO script.js COMPLETO (Versão FINAL)
+// ARQUIVO script.js COMPLETO (Versão FINAL CORRIGIDA)
 // =================================================================================
 
 const API_URL = 'https://sapiens-backend-ogz2.onrender.com';
@@ -54,7 +54,7 @@ async function handleLogin(e) {
         if (!response.ok) throw new Error(data.message);
         localStorage.setItem('token', data.token);
         localStorage.setItem('username', data.username);
-        localStorage.setItem('userId', data.userId); // Assumindo que o backend retorna o ID do usuário
+        localStorage.setItem('userId', data.userId);
         token = data.token;
         userId = data.userId;
         initializeApp();
@@ -107,8 +107,8 @@ async function loadLessons(subjectId, subjectName) {
             lessonView.innerHTML = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar</button><h2>Nenhuma lição disponível.</h2>`;
             return;
         }
-        // Lógica de progresso viria aqui
-        lessonView.innerHTML = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar para Matérias</button><h2>${subjectName}</h2><ul class="lesson-list">`;
+        let subjectTitle = subjectName ? `<h2>${subjectName}</h2>` : '';
+        lessonView.innerHTML = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar para Matérias</button>${subjectTitle}<ul class="lesson-list">`;
         const lessonList = lessonView.querySelector('.lesson-list');
         lessons.forEach(lesson => {
             lessonList.innerHTML += `<li class="lesson-item"><span>Lição ${lesson.lesson_order}: ${lesson.title}</span><button class="start-lesson-btn" data-lesson-id="${lesson.id}">Iniciar</button></li>`;
@@ -117,7 +117,7 @@ async function loadLessons(subjectId, subjectName) {
 }
 
 
-// --- TELA DE CONTEÚDO DA LIÇÃO ---
+// --- TELA DE CONTEÚDO DA LIÇÃO E QUIZ ---
 document.body.addEventListener('click', async e => {
     if (e.target && e.target.classList.contains('start-lesson-btn')) {
         const lessonId = e.target.dataset.lessonId;
@@ -133,9 +133,9 @@ async function renderLessonContent(lessonId) {
         const lesson = await lessonRes.json();
         
         lessonView.innerHTML = `
-            <button class="back-btn" onclick="loadLessons(${lesson.subject_id}, '')">← Voltar</button>
+            <button class="back-btn" onclick="loadLessons(${lesson.subject_id}, '')">← Voltar para Lições</button>
             <div id="lesson-content-area"><h2>${lesson.title}</h2><div id="video-placeholder"></div></div>
-            <div id="post-video-content" style="display:none;"><hr><h3>Recursos Adicionais</h3><img src="${lesson.image_url}" alt="Imagem da lição" style="max-width: 100%; border-radius: 8px;"><audio controls src="${lesson.audio_url}"></audio><button id="show-text-btn">Ver Explicação Escrita</button></div>
+            <div id="post-video-content" style="display:none;"><hr><h3>Recursos Adicionais</h3><img src="${lesson.image_url}" alt="Imagem da lição" style="max-width: 100%; border-radius: 8px;"><br/><audio controls src="${lesson.audio_url}"></audio><br/><button id="show-text-btn">Ver Explicação Escrita</button></div>
             <div id="text-content" style="display:none;"><hr><h3>Explicação Detalhada</h3><div>${lesson.lesson_text}</div><button id="start-quiz-btn">Iniciar Questões</button></div>
             <div id="quiz-content" style="display:none;"></div>`;
         
@@ -149,14 +149,14 @@ function createYouTubePlayer(lesson) {
     let progressCheckInterval;
 
     ytPlayer = new YT.Player('video-placeholder', {
-        height: '480', width: '100%', videoId: videoId,
+        height: '480', width: '100%', videoId: videoId, playerVars: { 'origin': window.location.origin },
         events: {
             'onStateChange': (event) => {
                 if (event.data == YT.PlayerState.PLAYING) {
+                    const duration = ytPlayer.getDuration();
                     progressCheckInterval = setInterval(() => {
                         const currentTime = ytPlayer.getCurrentTime();
-                        const duration = ytPlayer.getDuration();
-                        if ((currentTime / duration) >= 0.8) {
+                        if (duration > 0 && (currentTime / duration) >= 0.8) {
                             showPostVideoContent();
                             clearInterval(progressCheckInterval);
                         }
@@ -178,14 +178,13 @@ function createYouTubePlayer(lesson) {
 
 function showPostVideoContent() {
     const postVideoContent = document.getElementById('post-video-content');
-    postVideoContent.style.display = 'block';
-    scrollToElement(postVideoContent);
+    if (postVideoContent.style.display === 'none') {
+        postVideoContent.style.display = 'block';
+        scrollToElement(postVideoContent);
+    }
 }
 
-// --- LÓGICA DO QUIZ ---
-// =================================================================================
-// COLE ESTE NOVO BLOCO NO LUGAR DA ANTIGA FUNÇÃO renderQuiz
-// =================================================================================
+// --- LÓGICA COMPLETA DO QUIZ ---
 async function renderQuiz(lesson) {
     const quizContent = document.getElementById('quiz-content');
     quizContent.style.display = 'block';
@@ -202,7 +201,7 @@ async function renderQuiz(lesson) {
             display.textContent = `Tempo: ${timer}s`;
             if (timer <= 0) {
                 clearInterval(timerInterval);
-                handleAnswer(null); // Trata o tempo esgotado como uma resposta nula/errada
+                handleAnswer('q1', lesson.q1_options[0], null, 'O tempo acabou!');
             }
         }, 1000);
     }
@@ -218,40 +217,36 @@ async function renderQuiz(lesson) {
         
         const nextBtn = document.createElement('button');
         nextBtn.id = 'next-question-btn';
-        nextBtn.textContent = isCorrect ? 'Próxima Questão' : 'Tentar Novamente (Q2)';
         feedbackDiv.appendChild(nextBtn);
         
         return nextBtn;
     }
 
-    async function handleAnswer(questionType, correctAnswer, selectedAnswer) {
+    async function handleAnswer(questionType, correctAnswer, selectedAnswerText, feedbackPrefix = '') {
         clearInterval(timerInterval);
         document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
         document.getElementById('confirm-answer-btn').disabled = true;
 
-        const isCorrect = selectedAnswer === correctAnswer;
+        const isCorrect = selectedAnswerText === correctAnswer;
 
-        // Mostra visualmente qual era a correta e qual foi a selecionada
         document.querySelectorAll('.option-btn').forEach(btn => {
             if (btn.textContent === correctAnswer) btn.classList.add('correct');
             if (btn === selectedOption && !isCorrect) btn.classList.add('incorrect');
         });
         
         if (questionType === 'q1') {
-            const feedbackText = isCorrect ? "Resposta Correta! Este foi um treino. Vamos para a questão avaliativa." : "Resposta Incorreta. A resposta correta está marcada em verde. Vamos para a questão avaliativa.";
+            const feedbackText = feedbackPrefix + (isCorrect ? " Resposta Correta! Este foi um treino." : " Resposta Incorreta. A resposta correta está em verde.");
             const nextBtn = showFeedback(isCorrect, feedbackText);
             nextBtn.textContent = "Iniciar Questão 2";
             nextBtn.addEventListener('click', () => renderQuestion2());
         } else if (questionType === 'q2') {
-             // Comunica o resultado ao backend
             const response = await fetch(`${API_URL}/api/content/submit-quiz`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ userId, lessonId: lesson.id, questionType: 'q2', isCorrect })
             });
             const result = await response.json();
-
-            const nextBtn = showFeedback(isCorrect, result.message);
+            const nextBtn = showFeedback(isCorrect, feedbackPrefix + " " + result.message);
             
             if (result.status === 'completed') {
                 nextBtn.textContent = "Ver Próxima Lição";
@@ -263,9 +258,7 @@ async function renderQuiz(lesson) {
         }
     }
     
-    // --- LÓGICA PARA RENDERIZAR A QUESTÃO 2 ---
     async function renderQuestion2() {
-        // Pega o progresso atual para saber quais variantes já foram vistas
         const progressRes = await fetch(`${API_URL}/api/content/start-lesson/${lesson.id}/user/${userId}`);
         const progress = await progressRes.json();
         
@@ -274,6 +267,7 @@ async function renderQuiz(lesson) {
             const blockedUntil = new Date(progress.blocked_until);
             if (now < blockedUntil) {
                 alert(`Lição bloqueada. Tente novamente em ${blockedUntil.toLocaleTimeString()}`);
+                loadLessons(lesson.subject_id, '');
                 return;
             }
         }
@@ -295,12 +289,8 @@ async function renderQuiz(lesson) {
         const optionsContainer = quizContent.querySelector('.options-container');
         const timerDisplay = document.getElementById('timer');
         
-        // Embaralha as opções para exibição
         const shuffledOptions = [...question.options].sort(() => Math.random() - 0.5);
-        shuffledOptions.forEach(option => {
-            optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`;
-        });
-
+        shuffledOptions.forEach(option => { optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`; });
         startTimer(lesson.q2_time, timerDisplay);
         
         selectedOption = null;
@@ -313,26 +303,17 @@ async function renderQuiz(lesson) {
             });
         });
 
-        document.getElementById('confirm-answer-btn').addEventListener('click', () => {
-             handleAnswer('q2', correctAnswer, selectedOption ? selectedOption.textContent : null);
-        });
+        document.getElementById('confirm-answer-btn').addEventListener('click', () => { handleAnswer('q2', correctAnswer, selectedOption ? selectedOption.textContent : null); });
     }
 
-
-    // --- INÍCIO DO QUIZ: RENDERIZA A QUESTÃO 1 ---
     function renderQuestion1() {
-        const correctAnswer = lesson.q1_options[0]; // A resposta correta é a primeira
-
+        const correctAnswer = lesson.q1_options[0];
         quizContent.innerHTML = `<h3>Questão 1 (Treino)</h3><p>${lesson.q1_text}</p><div id="timer"></div><div class="options-container"></div><button id="confirm-answer-btn" disabled>Confirmar</button>`;
         const optionsContainer = quizContent.querySelector('.options-container');
         const timerDisplay = document.getElementById('timer');
         
-        // Embaralha as opções para exibição
         const shuffledOptions = [...lesson.q1_options].sort(() => Math.random() - 0.5);
-        shuffledOptions.forEach(option => {
-            optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`;
-        });
-
+        shuffledOptions.forEach(option => { optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`; });
         startTimer(lesson.q1_time, timerDisplay);
         
         selectedOption = null;
@@ -344,43 +325,9 @@ async function renderQuiz(lesson) {
                 document.getElementById('confirm-answer-btn').disabled = false;
             });
         });
-
-        document.getElementById('confirm-answer-btn').addEventListener('click', () => {
-            handleAnswer('q1', correctAnswer, selectedOption ? selectedOption.textContent : null);
-        });
+        document.getElementById('confirm-answer-btn').addEventListener('click', () => { handleAnswer('q1', correctAnswer, selectedOption ? selectedOption.textContent : null); });
     }
-
     renderQuestion1();
-}
-    // Renderiza Questão 1
-    quizContent.innerHTML = `<h3>Questão 1 (Treino)</h3><p>${lesson.q1_text}</p><div id="timer"></div><div class="options-container"></div><button id="confirm-answer-btn" disabled>Confirmar</button>`;
-    const optionsContainer = quizContent.querySelector('.options-container');
-    const timerDisplay = document.getElementById('timer');
-    
-    lesson.q1_options.forEach(option => {
-        optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`;
-    });
-
-    startTimer(lesson.q1_time, timerDisplay);
-    
-    let selectedOption = null;
-    optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (selectedOption) selectedOption.classList.remove('selected');
-            selectedOption = btn;
-            selectedOption.classList.add('selected');
-            document.getElementById('confirm-answer-btn').disabled = false;
-        });
-    });
-
-    // Lógica de confirmação viria aqui...
-    document.getElementById('confirm-answer-btn').addEventListener('click', () => {
-        clearInterval(timerInterval);
-        // Lógica de feedback e avanço para a Q2
-        alert("Avançando para a Questão 2 (a ser implementada)");
-    });
-    
-    scrollToElement(quizContent);
 }
 
 
@@ -388,7 +335,7 @@ async function renderQuiz(lesson) {
 // INICIALIZAÇÃO DO APLICATIVO
 // =================================================================================
 function initializeApp() {
-    if (token) {
+    if (token && userId) {
         showView('subjects-view');
         fetchSubjects();
         const userArea = document.getElementById('user-area');
@@ -401,7 +348,6 @@ function initializeApp() {
     }
 }
 
-// O ponto de entrada de tudo
 document.addEventListener('DOMContentLoaded', () => {
     setupAuthListeners();
     initializeApp();

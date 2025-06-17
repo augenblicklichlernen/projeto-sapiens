@@ -94,4 +94,25 @@ router.delete('/lesson/:id', async (req, res) => {
         res.status(500).json({ message: 'Erro no servidor ao excluir lição.' });
     }
 });
+
+// Rota para buscar e excluir usuários
+router.get('/users', async (req, res) => {
+    try {
+        const result = await db.query('SELECT id, username FROM users ORDER BY username');
+        res.json(result.rows);
+    } catch (error) { res.status(500).json({ message: 'Erro ao buscar usuários.' }); }
+});
+
+router.delete('/user/:id', async (req, res) => {
+    const { id } = req.params;
+    // Adicionar verificação para não deixar o admin se excluir seria uma boa prática
+    try {
+        await db.query('DELETE FROM users WHERE id = $1', [id]);
+        res.status(200).json({ message: 'Usuário excluído com sucesso.' });
+    } catch (error) {
+        console.error("Erro ao excluir usuário:", error);
+        res.status(500).json({ message: 'Erro no servidor ao excluir usuário.' });
+    }
+});
+
 module.exports = router;
