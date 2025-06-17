@@ -19,24 +19,36 @@ let userId = localStorage.getItem('userId');
 function showView(viewId) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById(viewId)?.classList.add('active'); }
 function scrollToElement(element) { if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 
+// =================================================================================
+// INICIALIZAÇÃO DO APLICATIVO (VERSÃO CORRIGIDA)
+// =================================================================================
 function initializeApp() {
-    if (token && userId) {
-        showView('subjects-view');
-        fetchSubjects();
-        setupUserAreaAndScores();
-    } else {
-        showView('login-view');
-    }
-}
+    // Pega os dados do armazenamento local
+    token = localStorage.getItem('token');
+    userId = localStorage.getItem('userId');
 
-document.addEventListener('DOMContentLoaded', () => {
+    // Configura os ouvintes de eventos para os botões e formulários
     document.getElementById('show-register')?.addEventListener('click', (e) => { e.preventDefault(); showView('register-view'); });
     document.getElementById('show-login')?.addEventListener('click', (e) => { e.preventDefault(); showView('login-view'); });
     document.getElementById('login-form')?.addEventListener('submit', handleLogin);
     document.getElementById('register-form')?.addEventListener('submit', handleRegister);
-    initializeApp();
-});
 
+    if (token && userId) {
+        // Se o usuário está logado
+        showView('subjects-view');
+        fetchSubjects(); // <--- O PONTO CRÍTICO
+        setupUserAreaAndScores();
+    } else {
+        // Se o usuário não está logado
+        showView('login-view');
+        // Garante que a área do usuário mostre apenas o botão de login inicial
+        document.getElementById('user-area').innerHTML = '<button id="login-button">Entrar</button>';
+        document.getElementById('login-button').addEventListener('click', () => showView('login-view'));
+    }
+}
+
+// O ponto de entrada de tudo quando a página carrega
+document.addEventListener('DOMContentLoaded', initializeApp);
 // =================================================================================
 // LÓGICA DE AUTENTICAÇÃO E BARRA DE SCORE
 // =================================================================================
