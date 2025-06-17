@@ -1,5 +1,5 @@
 // =================================================================================
-// ARQUIVO admin.js (VERSÃO FINAL LEGÍVEL E CORRIGIDA)
+// ARQUIVO admin.js (VERSÃO FINAL LEGÍVEL E CORRIGIDA) ampliada
 // =================================================================================
 
 const API_URL = 'https://sapiens-backend-ogz2.onrender.com';
