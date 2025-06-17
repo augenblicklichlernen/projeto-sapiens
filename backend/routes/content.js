@@ -6,12 +6,16 @@ const express = require('express');
 const db = require('../database');
 const router = express.Router();
 
-// Rota para buscar todas as matérias
+// Rota para buscar todas as matérias (VERSÃO DE CORREÇÃO)
 router.get('/subjects', async (req, res) => {
     try {
-        const result = await db.query('SELECT * FROM subjects ORDER BY subject_order');
+        // Voltando para a ordenação por nome para estabilizar o sistema
+        const result = await db.query('SELECT * FROM subjects ORDER BY name');
         res.json(result.rows);
-    } catch (error) { res.status(500).json({ message: 'Erro ao buscar matérias.' }); }
+    } catch (error) {
+        console.error("ERRO FATAL em /api/content/subjects:", error);
+        res.status(500).json({ message: 'Erro ao buscar matérias.' });
+    }
 });
 
 // Rota para buscar todas as lições de uma matéria

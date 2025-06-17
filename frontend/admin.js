@@ -133,6 +133,13 @@ async function populateAllLessonsSelect() {
     try {
         const subjectsRes = await fetch(`${API_URL}/api/content/subjects`);
         const subjects = await subjectsRes.json();
+//correção adicionada
+        if (!Array.isArray(subjects)) {
+            console.error("A resposta de /subjects não é um array:", subjects);
+            return;
+        }
+
+//fim da correção
         selectTriggerLesson.innerHTML = '';
         for (const subject of subjects) {
             const lessonsRes = await fetch(`${API_URL}/api/content/lessons/${subject.id}`);
