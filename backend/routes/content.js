@@ -9,7 +9,7 @@ const router = express.Router();
 // Rota para buscar todas as matérias
 router.get('/subjects', async (req, res) => {
     try {
-        const result = await db.query('SELECT * FROM subjects ORDER BY name');
+        const result = await db.query('SELECT * FROM subjects ORDER BY subject_order');
         res.json(result.rows);
     } catch (error) { res.status(500).json({ message: 'Erro ao buscar matérias.' }); }
 });

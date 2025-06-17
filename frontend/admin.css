@@ -1,0 +1,18 @@
+/* Estilos Específicos para a Página de Admin */
+.manage-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.delete-btn {
+    background-color: #e53e3e !important; /* Vermelho, com !important para garantir */
+    color: white !important;
+    padding: 5px 10px !important;
+    font-size: 0.8rem !important;
+    box-shadow: none !important; /* Remove sombra para botões pequenos */
+}

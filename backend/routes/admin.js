@@ -127,6 +127,20 @@ router.post('/reinforcement-lesson', async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Erro no servidor.' }); }
 });
 
-
+router.post('/subjects/order', async (req, res) => {
+    const { subjectOrder } = req.body; // Espera um array de IDs na ordem correta
+    try {
+        const client = await db.getClient(); // Usando transação
+        await client.query('BEGIN');
+        for (let i = 0; i < subjectOrder.length; i++) {
+            await client.query('UPDATE subjects SET subject_order = $1 WHERE id = $2', [i, subjectOrder[i]]);
+        }
+        await client.query('COMMIT');
+        res.status(200).json({ message: 'Ordem das matérias atualizada.' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ message: 'Erro ao atualizar ordem.' });
+    }
+});
 
 module.exports = router;
