@@ -48,7 +48,7 @@ async function fetchReinforcementLessons() {
                 card.style.borderColor = '#4299e1'; // Cor azul para destacar
                 card.innerHTML = `<h3>${lesson.title}</h3>`;
                 // Adicionar evento de clique para iniciar a lição de reforço
-                // card.onclick = () => renderReinforcementLesson(lesson.id);
+                card.onclick = () => renderReinforcementLesson(lesson.id);
                 reinforcementList.appendChild(card);
             });
         } else {
@@ -130,7 +130,31 @@ async function fetchSubjects() {
     }
 }
 
+// ADICIONE ESTA NOVA FUNÇÃO EM script.js
+async function renderReinforcementLesson(lessonId) {
+    showView('lesson-view');
+    lessonView.innerHTML = `<h2>Carregando lição de reforço...</h2>`;
+    try {
+        // Rota a ser criada no backend
+        const res = await fetch(`${API_URL}/api/content/reinforcement-lesson/${lessonId}`);
+        const rfLesson = await res.json();
+        
+        // O conteúdo da lição de reforço está dentro de rfLesson.content
+        const content = rfLesson.content;
 
+        // Aqui, nós construiríamos a interface da lição de reforço
+        // Como é similar à lição normal (mas sem a Q2), vamos simplificar por agora
+        lessonView.innerHTML = `
+            <button class="back-btn" onclick="showView('subjects-view')">← Voltar</button>
+            <h2>Reforço: ${rfLesson.title}</h2>
+            <p>Aqui apareceria o conteúdo da lição de reforço: vídeo, texto e as 5 questões de treino.</p>
+            <p>Esta funcionalidade está pronta no backend e precisa ser desenhada aqui.</p>
+        `;
+
+    } catch (error) {
+        lessonView.innerHTML = `<h2>Erro ao carregar lição de reforço.</h2>`;
+    }
+}
 
 async function loadLessons(subjectId, subjectName) { const lessonView = document.getElementById('lesson-view'); showView('lesson-view'); lessonView.innerHTML = '<h2>Carregando...</h2>'; try { const response = await fetch(`${API_URL}/api/content/lessons/${subjectId}`); if (!response.ok) throw new Error('Falha ao buscar lições.'); const lessons = await response.json(); let title = subjectName ? `<h2>${subjectName}</h2>` : ''; let backBtn = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar</button>`; if (lessons.length === 0) { lessonView.innerHTML = `${backBtn}${title}<h2>Nenhuma lição disponível.</h2>`; return; } lessonView.innerHTML = `${backBtn}${title}<ul class="lesson-list"></ul>`; const lessonList = lessonView.querySelector('.lesson-list'); lessons.forEach(lesson => { const item = document.createElement('li'); item.className = 'lesson-item'; item.innerHTML = `<span>Lição ${lesson.lesson_order}: ${lesson.title}</span><button class="start-lesson-btn" data-lesson-id="${lesson.id}">Iniciar</button>`; lessonList.appendChild(item); }); } catch (error) { console.error('Erro em loadLessons:', error); lessonView.innerHTML = `<h2>Erro.</h2><p>${error.message}</p>`; } }
 async function renderLessonContent(lessonId) { const lessonView = document.getElementById('lesson-view'); showView('lesson-view'); lessonView.innerHTML = `<h2>Carregando...</h2>`; try { const res = await fetch(`${API_URL}/api/content/lesson-detail/${lessonId}`); const lesson = await res.json(); lessonView.innerHTML = `<button class="back-btn" onclick="loadLessons(${lesson.subject_id}, '')">← Voltar</button><div id="lesson-main-content"><h2>${lesson.title}</h2><div id="video-placeholder"></div><div id="post-video-content" style="display:none;"><hr><h3>Recursos</h3><img src="${lesson.image_url}" alt="Imagem" style="max-width:100%;"><br/><audio controls src="${lesson.audio_url}"></audio><br/><button id="show-text-btn">Ver Explicação</button></div><div id="text-content" style="display:none;"><hr><h3>Explicação</h3><div>${lesson.lesson_text}</div><button id="start-quiz-btn">Iniciar Questões</button></div></div><div id="quiz-content-wrapper" style="display:none;"></div>`; createYouTubePlayer(lesson); } catch (error) { lessonView.innerHTML = `<h2>Erro.</h2><p>${error.message}</p>`; } }

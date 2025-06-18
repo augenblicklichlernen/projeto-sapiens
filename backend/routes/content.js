@@ -45,4 +45,16 @@ router.get('/reinforcement/user/:userId', async (req, res) => {
     }
 });
 
+// ROTA PARA BUSCAR DETALHES DE UMA LIÇÃO DE REFORÇO
+router.get('/reinforcement-lesson/:lessonId', async (req, res) => {
+    const { lessonId } = req.params;
+    try {
+        const result = await db.query('SELECT * FROM reinforcement_lessons WHERE id = $1', [lessonId]);
+        if (result.rows.length === 0) return res.status(404).json({ message: 'Lição de reforço não encontrada.' });
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao buscar detalhes da lição de reforço.' });
+    }
+});
+
 module.exports = router;
