@@ -263,54 +263,185 @@ input[type="text"], input[type="password"] {
     font-weight: bold;
 }
 
-/* --- ESTILOS DAS LIÇÕES DE REFORÇO E CERTIFICADOS --- */
+/* ================================================================================= */
+/* --- ESTILOS FINAIS PARA REFORÇO E CERTIFICADOS --- */
+/* ================================================================================= */
+
+/* --- Estilo para a Notificação de Lição de Reforço --- */
 #reinforcement-toast {
     position: fixed;
-    bottom: 20px;
+    bottom: -100px; /* Começa escondido fora da tela */
     left: 50%;
     transform: translateX(-50%);
     background-color: #2d3748;
     color: white;
     padding: 15px 30px;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     z-index: 2000;
-    opacity: 0;
-    transition: opacity 0.5s;
+    transition: bottom 0.5s ease-in-out;
 }
 #reinforcement-toast.show {
-    opacity: 1;
+    bottom: 20px; /* Desliza para cima para aparecer */
 }
 
+
+/* --- Estilos do Modal do Certificado (Aprimorados) --- */
+
+/* O fundo escurecido que cobre a tela inteira */
 #certificate-modal {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); display: flex;
-    justify-content: center; align-items: center; z-index: 1000;
+    position: fixed;
+    top: 0;
+    leftEntendido perfeitamente. O problema agora é 100% visual (CSS). O certificado está sendo gerado, mas a forma como ele é exibido na tela está quebrada.
+
+Sua descrição é ótima e aponta para dois problemas de estilo:
+1.  **O "modal" (a janela: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8); /* Fundo preto semi-trans pop-up) do certificado não está se comportando como um pop-up.** Em vez de sobrepor a página com um fundo escuro, ele está aparecendo "dentro" da página, de forma transparente.
+2.  **parente */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+    box-sizingO layout interno do certificado está bagunçado**, provavelmente porque o texto está muito grande ou os espaçamentos não estão: border-box;
 }
-#certificate-content {
-    background-image: url('assets/certificate-bg.jpeg') no-repeat center center; /* Imagem de fundo do certificado */
+
+/* O contêiner do certificado em si */
+#certificate-content { corretos.
+
+Vamos consertar isso com uma revisão completa do CSS do certificado, garantindo que ele se pareça com
+    background-color: #fdfaf3;
+    background-image: url('assets/certificate-bg.jpeg');
     background-size: cover;
-    width: 800px; height: 565px;
-    padding: 80px; box-sizing: border-box;
-    text-align: center; font-family: 'Times New Roman', serif;
+    background-position: center center;
+    max-width:  uma janela profissional e que o conteúdo seja legível e bem-apresentado.
+
+---
+
+### **A Solução:800px; 
+    width: 100%;
+    aspect-ratio: 800 /  Um CSS Robusto para o Modal do Certificado**
+
+Vamos substituir todas as regras de CSS relacionadas ao certificado por um novo565; /* Mantém a proporção correta */
+    padding: 40px 60px;
+    box-sizing: border-box;
+    text-align: center; 
+    font-family: 'Times conjunto que corrige todos os problemas que você descreveu.
+
+**Ação Clara e Única:**
+
+1.  Abra o seu arquivo `frontend/style.css`.
+2.  **Encontre e apague completamente** todo o bloco de código New Roman', serif;
     position: relative;
+    color: #3a2d1d;
+    border: 10px solid #c0a062;
+    border-radius: 4px;
+    box-shadow: 0 0 30px rgba(0,0,0,0. que começa com o comentário `/* --- ESTILOS DAS LIÇÕES DE REFORÇO E CERTIFICADOS --- */`. Apague todas as regras relacionadas a `#certificate-modal`, `#certificate-content`, etc.
+
+3.  **No5); /* Sombra para destacar */
 }
+
+/* O texto dentro do certificado */
 #certificate-text {
-    font-size: 1.2rem; line-height: 1.6;
+    font-size: 1.2rem;
+    line-height: 1.6;
 }
 #certificate-text strong {
     font-size: 1.5rem;
 }
+
+/* Botão de Imprimir ( lugar do bloco que você apagou**, cole este novo conjunto de regras de estilo, que é muito mais robusto e completo:
+
+```css
+/* ========================================================================== */
+/* ESTILOS FINAIS PARA REFORÇO E CERTIFICADOS (VERSÃO CORRIGIDA)             */
+/* ==========================================================================ícone da impressora) */
 #print-cert-btn {
-    position: absolute; top: 20px; right: 20px;
-    background: none; border: none; font-size: 1.5rem; cursor: pointer;
+    position: absolute;
+    top: 15px;
+    right: 50px; /* Posição ao lado do botão de fechar */
+    background: none;
+    border: none;
+    font-size: 1.8rem; /* Tamanho do ícone */
+    cursor: pointer;
+    color: #3a2d1d;
+    opacity: 0.6;
+    transition: opacity 0.2s;
 }
-#close-modal-btn {
-    position: absolute; top: 10px; right: 10px;
+#print */
+
+/* --- Estilo do Toast de Notificação (Lição de Reforço) --- */
+#reinforcement-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #2d3748; /* Cinza escuro */
+    color: white;
+    padding: 15px 30px;
+    border-radius: 8px;
+    z-index: 2000;
+    opacity: 0;
+    transition: opacity 0.5s, transform 0.5s;
+    pointer-events: none; /* Impede que seja clicado */
 }
 
+#reinforcement-toast.show {
+    opacity: -cert-btn:hover {
+    opacity: 1;
+}
+
+/* Botão de Fechar (X) */
+#close-modal-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background-color: #e53e3e;
+    color: white;
+    border: 2px solid #1a1a1a;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Lógica para impressão */
 @media print {
-  body * { visibility: hidden; }
-  #certificate-content, #certificate-content * { visibility: visible; }
-  #certificate-content { position: absolute; left: 0; top: 0; width: 100%; }
-  #print-cert-btn, #close-modal-btn { display: none; }
+  body * {
+    visibility: hidden;
+  }
+  #certificate-modal, #certificate-content, #certificate-content1;
+    transform: translateX(-50%) translateY(-10px); /* Efeito de subir */
+}
+
+/* --- Estilo do Modal do Certificado (A Sobreposição) --- */
+#certificate-modal {
+    /* Faz o modal ocupar a tela inteira e ficar por cima de tudo */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw; /* 100 * {
+    visibility: visible;
+  }
+  #certificate-modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  #print-cert-btn, #close-modal-btn {
+    display: none; /* Esconde os botões na hora de imprimir */
+  }
 }
