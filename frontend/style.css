@@ -287,7 +287,7 @@ input[type="text"], input[type="password"] {
     justify-content: center; align-items: center; z-index: 1000;
 }
 #certificate-content {
-    background: url('https://i.imgur.com/gQY8X8z.png') no-repeat center center; /* Imagem de fundo do certificado */
+    background-image: url('assets/certificate-bg.jpeg') no-repeat center center; /* Imagem de fundo do certificado */
     background-size: cover;
     width: 800px; height: 565px;
     padding: 80px; box-sizing: border-box;
