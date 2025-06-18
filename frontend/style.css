@@ -343,7 +343,7 @@ input[type="text"], input[type="password"] {
 #print-cert-btn {
     position: absolute;
     top: 20px;
-    right: 60px; /* Posição correta */
+    right: 70px; /* Posição correta */
     background: none; border: none; font-size: 1.8rem;
     cursor: pointer; color: #3a2d1d; opacity: 0.6; transition: opacity 0.2s;
 }
