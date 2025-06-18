@@ -337,7 +337,6 @@ function initializeApp() {
     token = localStorage.getItem('token');
     userId = localStorage.getItem('userId');
 
-    setupEventListeners();
 
     if (token && userId) {
         showView('subjects-view');
@@ -352,14 +351,37 @@ function initializeApp() {
     }
 }
 
-function setupEventListeners() {
-    document.getElementById('show-register')?.addEventListener('click', e => { e.preventDefault(); showView('register-view'); });
-    document.getElementById('show-login')?.addEventListener('click', e => { e.preventDefault(); showView('login-view'); });
-    document.getElementById('login-form')?.addEventListener('submit', handleLogin);
-    document.getElementById('register-form')?.addEventListener('submit', handleRegister);
-    document.body.addEventListener('click', e => {
-        if (e.target?.classList.contains('start-lesson-btn')) {
+
+// =================================================================================
+// ADICIONE ESTE BLOCO DE CÓDIGO NO script.js
+// =================================================================================
+
+document.addEventListener('click', (e) => {
+    // Ouvinte para todos os cliques em botões
+    if (e.target) {
+        if (e.target.id === 'show-register') {
+            e.preventDefault();
+            showView('register-view');
+        }
+        if (e.target.id === 'show-login') {
+            e.preventDefault();
+            showView('login-view');
+        }
+        if (e.target.classList.contains('start-lesson-btn')) {
             renderLessonContent(e.target.dataset.lessonId);
         }
-    });
-}
+        if (e.target.id === 'login-button') {
+            showView('login-view');
+        }
+    }
+});
+
+document.addEventListener('submit', (e) => {
+    // Ouvinte para todos os envios de formulário
+    if (e.target && e.target.id === 'login-form') {
+        handleLogin(e);
+    }
+    if (e.target && e.target.id === 'register-form') {
+        handleRegister(e);
+    }
+});
