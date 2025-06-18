@@ -31,7 +31,107 @@ function setupUserAreaAndScores() {
 }
 async function updateScores() { try { const res = await fetch(`${API_URL}/api/content/scores/user/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }); if (!res.ok) throw new Error('Falha ao buscar scores'); const scores = await res.json(); const scoreList = document.getElementById('score-list'); scoreList.innerHTML = ''; scores.forEach(score => { const percentage = score.total_lessons > 0 ? ((score.user_score / score.total_lessons) * 100).toFixed(0) : 0; scoreList.innerHTML += `<li><span class="score-name" style="color:${score.color_hex};">${score.name}</span><span class="score-value">${score.user_score}/${score.total_lessons} (${percentage}%)</span></li>`; }); } catch(error) { console.error("Erro ao atualizar scores:", error); } }
 
-async function fetchSubjects() { const subjectsGrid = document.getElementById('subjects-grid'); if (!subjectsGrid) return; try { const response = await fetch(`${API_URL}/api/content/subjects`, { headers: { 'Authorization': `Bearer ${token}` } }); if (!response.ok) throw new Error('Falha ao buscar matérias.'); const subjects = await response.json(); while (subjectsGrid.firstChild) { subjectsGrid.removeChild(subjectsGrid.firstChild); } if (!Array.isArray(subjects) || subjects.length === 0) { subjectsGrid.innerHTML = '<p>Nenhuma matéria cadastrada.</p>'; return; } subjects.forEach(subject => { const card = document.createElement('div'); card.className = 'subject-card'; card.style.setProperty('--subject-color', subject.color_hex); card.innerHTML = `<h3>${subject.name}</h3>`; card.addEventListener('click', () => loadLessons(subject.id, subject.name)); subjectsGrid.appendChild(card); }); } catch (error) { console.error('Erro em fetchSubjects:', error); subjectsGrid.innerHTML = '<p>Erro ao carregar matérias.</p>'; } }
+async function fetchReinforcementLessons() {
+    const reinforcementSection = document.getElementById('reinforcement-section');
+    const reinforcementList = document.getElementById('reinforcement-list');
+    try {
+        // Rota a ser criada no backend
+        const res = await fetch(`${API_URL}/api/content/reinforcement/user/${userId}`, { headers: { 'Authorization': `Bearer ${token}` }});
+        const lessons = await res.json();
+        
+        if (lessons.length > 0) {
+            reinforcementSection.style.display = 'block';
+            reinforcementList.innerHTML = '';
+            lessons.forEach(lesson => {
+                const card = document.createElement('div');
+                card.className = 'subject-card'; // Reutilizando estilo
+                card.style.borderColor = '#4299e1'; // Cor azul para destacar
+                card.innerHTML = `<h3>${lesson.title}</h3>`;
+                // Adicionar evento de clique para iniciar a lição de reforço
+                // card.onclick = () => renderReinforcementLesson(lesson.id);
+                reinforcementList.appendChild(card);
+            });
+        } else {
+            reinforcementSection.style.display = 'none';
+        }
+    } catch (error) {
+        console.error("Erro ao buscar lições de reforço:", error);
+        reinforcementSection.style.display = 'none';
+    }
+}
+
+// =================================================================================
+// COLE ESTA FUNÇÃO COMPLETA NO LUGAR DA ANTIGA fetchSubjects
+// =================================================================================
+
+async function fetchSubjects() {
+    const subjectsGrid = document.getElementById('subjects-grid');
+    if (!subjectsGrid) {
+        console.error("Elemento 'subjects-grid' não encontrado no HTML.");
+        return;
+    }
+
+    // Cria o contêiner para as matérias extras se ele ainda não existir
+    let extraSubjectsContainer = document.getElementById('extra-subjects-container');
+    if (!extraSubjectsContainer) {
+        extraSubjectsContainer = document.createElement('div');
+        extraSubjectsContainer.id = 'extra-subjects-container';
+        // Insere o novo container depois do grid principal
+        subjectsGrid.insertAdjacentElement('afterend', extraSubjectsContainer);
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/api/content/subjects`, { headers: { 'Authorization': `Bearer ${token}` } });
+        
+        if (!response.ok) {
+            // Se a resposta da rede não for OK, lança um erro
+            throw new Error('Falha na comunicação com o servidor ao buscar matérias.');
+        }
+
+        const data = await response.json();
+
+        // Limpa os contêineres antes de adicionar os novos cards
+        subjectsGrid.innerHTML = '';
+        extraSubjectsContainer.innerHTML = '';
+
+        // 1. Renderiza as Matérias Principais
+        if (data.main && data.main.length > 0) {
+            data.main.forEach(subject => {
+                const card = document.createElement('div');
+                card.className = 'subject-card';
+                card.style.setProperty('--subject-color', subject.color_hex);
+                card.innerHTML = `<h3>${subject.name}</h3>`;
+                card.addEventListener('click', () => loadLessons(subject.id, subject.name));
+                subjectsGrid.appendChild(card);
+            });
+        } else {
+            subjectsGrid.innerHTML = '<p>Nenhuma matéria principal disponível no momento.</p>';
+        }
+
+        // 2. Renderiza as Matérias Extras
+        if (data.extra && data.extra.length > 0) {
+            // Adiciona um título para a seção de matérias extras
+            extraSubjectsContainer.innerHTML = '<hr><h2>Matérias Extras</h2>';
+            data.extra.forEach(subject => { 
+                const card = document.createElement('div');
+                card.className = 'subject-card extra'; // Adiciona a classe 'extra' para o estilo
+                card.style.setProperty('--subject-color', subject.color_hex);
+                card.innerHTML = `<h3>${subject.name}</h3>`;
+                // Adicionar evento de clique para a matéria extra, se o fluxo for diferente
+                card.addEventListener('click', () => loadLessons(subject.id, subject.name));
+                extraSubjectsContainer.appendChild(card);
+             });
+        }
+        
+    } catch (error) {
+        // Se qualquer parte do 'try' falhar, esta mensagem será exibida
+        console.error('Erro detalhado em fetchSubjects:', error);
+        subjectsGrid.innerHTML = '<p>Ocorreu um erro ao carregar as matérias. Tente recarregar a página.</p>';
+    }
+}
+
+
+
 async function loadLessons(subjectId, subjectName) { const lessonView = document.getElementById('lesson-view'); showView('lesson-view'); lessonView.innerHTML = '<h2>Carregando...</h2>'; try { const response = await fetch(`${API_URL}/api/content/lessons/${subjectId}`); if (!response.ok) throw new Error('Falha ao buscar lições.'); const lessons = await response.json(); let title = subjectName ? `<h2>${subjectName}</h2>` : ''; let backBtn = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar</button>`; if (lessons.length === 0) { lessonView.innerHTML = `${backBtn}${title}<h2>Nenhuma lição disponível.</h2>`; return; } lessonView.innerHTML = `${backBtn}${title}<ul class="lesson-list"></ul>`; const lessonList = lessonView.querySelector('.lesson-list'); lessons.forEach(lesson => { const item = document.createElement('li'); item.className = 'lesson-item'; item.innerHTML = `<span>Lição ${lesson.lesson_order}: ${lesson.title}</span><button class="start-lesson-btn" data-lesson-id="${lesson.id}">Iniciar</button>`; lessonList.appendChild(item); }); } catch (error) { console.error('Erro em loadLessons:', error); lessonView.innerHTML = `<h2>Erro.</h2><p>${error.message}</p>`; } }
 async function renderLessonContent(lessonId) { const lessonView = document.getElementById('lesson-view'); showView('lesson-view'); lessonView.innerHTML = `<h2>Carregando...</h2>`; try { const res = await fetch(`${API_URL}/api/content/lesson-detail/${lessonId}`); const lesson = await res.json(); lessonView.innerHTML = `<button class="back-btn" onclick="loadLessons(${lesson.subject_id}, '')">← Voltar</button><div id="lesson-main-content"><h2>${lesson.title}</h2><div id="video-placeholder"></div><div id="post-video-content" style="display:none;"><hr><h3>Recursos</h3><img src="${lesson.image_url}" alt="Imagem" style="max-width:100%;"><br/><audio controls src="${lesson.audio_url}"></audio><br/><button id="show-text-btn">Ver Explicação</button></div><div id="text-content" style="display:none;"><hr><h3>Explicação</h3><div>${lesson.lesson_text}</div><button id="start-quiz-btn">Iniciar Questões</button></div></div><div id="quiz-content-wrapper" style="display:none;"></div>`; createYouTubePlayer(lesson); } catch (error) { lessonView.innerHTML = `<h2>Erro.</h2><p>${error.message}</p>`; } }
 function createYouTubePlayer(lesson) { let interval; const videoId = new URL(lesson.video_url).searchParams.get('v'); ytPlayer = new YT.Player('video-placeholder', { height: '480', width: '100%', videoId: videoId, events: { 'onStateChange': e => { if (e.data === YT.PlayerState.PLAYING) { interval = setInterval(() => { const duration = ytPlayer.getDuration(); if (duration > 0 && (ytPlayer.getCurrentTime() / duration) >= 0.8) { showPostVideoContent(); clearInterval(interval); } }, 1000); } else { clearInterval(interval); } } } }); document.getElementById('show-text-btn')?.addEventListener('click', () => { const el = document.getElementById('text-content'); el.style.display = 'block'; scrollToElement(el); }); document.getElementById('start-quiz-btn')?.addEventListener('click', () => { document.getElementById('lesson-main-content').style.display = 'none'; renderQuiz(lesson); }); }
@@ -53,6 +153,7 @@ function initializeApp() {
     if (token && userId) {
         showView('subjects-view');
         fetchSubjects();
+        fetchReinforcementLessons(); // <<< ADICIONE ESTA LINHA
         setupUserAreaAndScores();
     } else {
         showView('login-view');

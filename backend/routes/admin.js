@@ -2,13 +2,15 @@ const express = require('express');
 const db = require('../database');
 const router = express.Router();
 
-// Rota para adicionar uma nova matéria (sem mudanças)
+// Rota para adicionar uma nova matéria (versão com is_extra)
 router.post('/subject', async (req, res) => {
-    const { name, color_hex } = req.body;
+    // Pega o is_extra do corpo da requisição
+    const { name, color_hex, is_extra } = req.body;
     try {
         const result = await db.query(
-            'INSERT INTO subjects (name, color_hex) VALUES ($1, $2) RETURNING *',
-            [name, color_hex]
+            // Adiciona a nova coluna na query de inserção
+            'INSERT INTO subjects (name, color_hex, is_extra) VALUES ($1, $2, $3) RETURNING *',
+            [name, color_hex, is_extra]
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {

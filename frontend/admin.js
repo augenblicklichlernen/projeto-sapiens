@@ -8,7 +8,49 @@ function initializeAdminPanel() { populateSubjects(); populateAllLessonsSelect()
 
 function setupPasswordProtection() { const form = document.getElementById('password-form'); if(form) form.addEventListener('submit', e => { e.preventDefault(); const input = document.getElementById('admin-password'); if (input.value === 'augensapien') { document.getElementById('password-overlay').style.display = 'none'; document.getElementById('admin-content').style.display = 'block'; initializeAdminPanel(); } else { alert('Senha incorreta!'); } }); }
 
-async function handleAddSubject(e) { e.preventDefault(); const name = document.getElementById('subject-name').value; const color_hex = document.getElementById('subject-color').value; try { const res = await fetch(`${API_URL}/api/admin/subject`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, color_hex }) }); const data = await res.json(); if (!res.ok) throw new Error(data.message); alert(`Matéria "${data.name}" criada.`); document.getElementById('add-subject-form').reset(); initializeAdminPanel(); } catch (error) { alert(`Erro: ${error.message}`); } }
+// =================================================================================
+// COLE ESTA FUNÇÃO COMPLETA NO LUGAR DA ANTIGA handleAddSubject
+// =================================================================================
+
+async function handleAddSubject(e) {
+    e.preventDefault(); // Impede o formulário de recarregar a página
+
+    // 1. Coleta os dados dos campos do formulário
+    const name = document.getElementById('subject-name').value;
+    const color_hex = document.getElementById('subject-color').value;
+    const is_extra = document.getElementById('subject-is-extra').checked; // Pega o valor do checkbox (true ou false)
+
+    try {
+        // 2. Envia os dados para o backend
+        const response = await fetch(`${API_URL}/api/admin/subject`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            // 3. Monta o corpo (body) da requisição com todos os dados, incluindo o is_extra
+            body: JSON.stringify({
+                name: name,
+                color_hex: color_hex,
+                is_extra: is_extra // A nova informação é enviada aqui
+            })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            // Se o servidor retornar um erro, mostra a mensagem
+            throw new Error(data.message);
+        }
+
+        // 4. Se tudo deu certo, mostra uma mensagem de sucesso
+        alert(`Matéria "${data.name}" criada com sucesso!`);
+        document.getElementById('add-subject-form').reset(); // Limpa o formulário
+        initializeAdminPanel(); // Recarrega todas as listas do painel
+
+    } catch (error) {
+        // 5. Se qualquer coisa no processo falhar, mostra um alerta de erro
+        alert(`Erro ao adicionar matéria: ${error.message}`);
+    }
+}
 async function handleAddLesson(e) { e.preventDefault(); try { const lessonData = { subject_id: document.getElementById('select-subject').value, title: document.getElementById('lesson-title').value, lesson_order: document.getElementById('lesson-order').value, video_url: document.getElementById('video-url').value, image_url: document.getElementById('image-url').value, audio_url: document.getElementById('audio-url').value, lesson_text: document.getElementById('lesson-text').value, q1_time: document.getElementById('q1-time').value, q1_text: document.getElementById('q1-text').value, q1_options: Array.from(document.querySelectorAll('.q1-option')).map(i => i.value), q2_time: document.getElementById('q2-time').value, q2_variants: [{ text: document.querySelectorAll('.q2-text')[0].value, options: Array.from(document.querySelectorAll('.q2-option-a')).map(i => i.value) }, { text: document.querySelectorAll('.q2-text')[1].value, options: Array.from(document.querySelectorAll('.q2-option-b')).map(i => i.value) }, { text: document.querySelectorAll('.q2-text')[2].value, options: Array.from(document.querySelectorAll('.q2-option-c')).map(i => i.value) }] }; const res = await fetch(`${API_URL}/api/admin/lesson`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lessonData) }); const data = await res.json(); if (!res.ok) throw new Error(data.message); alert(`Lição "${data.title}" adicionada.`); document.getElementById('add-lesson-form').reset(); initializeAdminPanel(); } catch (error) { alert(`Erro: ${error.message}`); } }
 async function handleAddReinforcement(e) { e.preventDefault(); try { const questions = []; document.querySelectorAll('.rf-question-block').forEach(block => { questions.push({ text: block.querySelector('.rf-q-text').value, options: Array.from(block.querySelectorAll('.rf-q-option')).map(i => i.value), time: block.querySelector('.rf-q-time').value, }); }); const rfData = { title: document.getElementById('rf-title').value, trigger_lesson_id: document.getElementById('select-trigger-lesson').value, content: { video_url: document.getElementById('rf-video-url').value, image_url: document.getElementById('rf-image-url').value, audio_url: document.getElementById('rf-audio-url').value, text: document.getElementById('rf-text').value, questions: questions } }; const res = await fetch(`${API_URL}/api/admin/reinforcement-lesson`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rfData) }); const data = await res.json(); if (!res.ok) throw new Error(data.message); alert('Lição de reforço criada.'); document.getElementById('add-reinforcement-form').reset(); } catch (error) { alert(`Erro: ${error.message}`); } }
 
