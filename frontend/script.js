@@ -1,46 +1,31 @@
 // =================================================================================
-// ARQUIVO script.js (VERSÃO FINAL COMPLETA E ESTÁVEL)
+// ARQUIVO script.js (VERSÃO FINAL, COMPLETA E COM ORDEM CORRIGIDA)
 // =================================================================================
 
+// --- 1. CONFIGURAÇÃO E ESTADO GLOBAL ---
 const API_URL = 'https://sapiens-backend-ogz2.onrender.com';
 let token;
 let userId;
 let ytPlayer;
-
-// --- ELEMENTOS GLOBAIS DO DOM ---
 let lessonView;
 let subjectsGrid;
 
-// --- PONTO DE ENTRADA ---
-document.addEventListener('DOMContentLoaded', initializeApp);
 
+// =================================================================================
+// 2. DEFINIÇÃO DE TODAS AS FUNÇÕES DO APLICATIVO
+// (A ordem aqui não importa, contanto que seja antes da execução)
+// =================================================================================
 
-// --- FUNÇÕES DE INICIALIZAÇÃO E AUTENTICAÇÃO ---
-function initializeApp() {
-    lessonView = document.getElementById('lesson-view');
-    subjectsGrid = document.getElementById('subjects-grid');
-    token = localStorage.getItem('token');
-    userId = localStorage.getItem('userId');
-    setupEventListeners();
-    if (token && userId) {
-        showView('subjects-view');
-        fetchSubjects();
-        fetchReinforcementLessons();
-        setupUserAreaAndScores();
-    } else {
-        showView('login-view');
-        const userArea = document.getElementById('user-area');
-        if(userArea) userArea.innerHTML = '<button id="login-button">Entrar</button>';
-        document.getElementById('login-button')?.addEventListener('click', () => showView('login-view'));
-    }
+function showView(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    const view = document.getElementById(viewId);
+    if(view) view.classList.add('active');
 }
-function setupEventListeners() {
-    document.getElementById('show-register')?.addEventListener('click', e => { e.preventDefault(); showView('register-view'); });
-    document.getElementById('show-login')?.addEventListener('click', e => { e.preventDefault(); showView('login-view'); });
-    document.getElementById('login-form')?.addEventListener('submit', handleLogin);
-    document.getElementById('register-form')?.addEventListener('submit', handleRegister);
-    document.body.addEventListener('click', e => { if (e.target?.classList.contains('start-lesson-btn')) renderLessonContent(e.target.dataset.lessonId); });
+
+function scrollToElement(element) {
+    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
+
 async function handleLogin(e) {
     e.preventDefault();
     const username = document.getElementById('login-username').value;
@@ -57,6 +42,7 @@ async function handleLogin(e) {
         alert(`Erro no login: ${error.message}`);
     }
 }
+
 async function handleRegister(e) {
     e.preventDefault();
     const username = document.getElementById('register-username').value;
@@ -71,21 +57,17 @@ async function handleRegister(e) {
     }
 }
 
-// --- ÁREA DO USUÁRIO, SCORES E CERTIFICADOS ---
 function setupUserAreaAndScores() {
     const userArea = document.getElementById('user-area');
     userArea.innerHTML = `<span>Olá, ${localStorage.getItem('username')}!</span><button id="logout-button">Sair</button>`;
     document.getElementById('logout-button').addEventListener('click', () => { localStorage.clear(); window.location.reload(); });
-
     const scoreContainer = document.getElementById('score-bar-container');
     if (scoreContainer) scoreContainer.style.display = 'flex';
-    
     document.getElementById('score-toggle-btn')?.addEventListener('click', () => {
         const panel = document.getElementById('score-panel');
         panel.classList.toggle('visible');
         if (panel.classList.contains('visible')) updateScores();
     });
-
     const headerRightGroup = document.querySelector('.header-right-group');
     if (headerRightGroup && !document.getElementById('my-certs-btn')) {
         const certButton = document.createElement('button');
@@ -95,12 +77,13 @@ function setupUserAreaAndScores() {
         scoreContainer.insertAdjacentElement('afterend', certButton);
     }
 }
+
 async function updateScores() {
+    const scoreList = document.getElementById('score-list');
     try {
         const res = await fetch(`${API_URL}/api/content/scores/user/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Falha ao buscar scores');
         const scores = await res.json();
-        const scoreList = document.getElementById('score-list');
         scoreList.innerHTML = '';
         if (scores && scores.length > 0) {
             scores.forEach(score => {
@@ -110,72 +93,29 @@ async function updateScores() {
         }
     } catch(error) {
         console.error("Erro ao atualizar scores:", error);
+        scoreList.innerHTML = '<li>Erro ao carregar.</li>'
     }
-}
-async function loadCertificates() {
-    showView('certificates-view');
-    const list = document.getElementById('certificates-list');
-    list.innerHTML = 'Carregando...';
-    try {
-        const res = await fetch(`${API_URL}/api/content/certificates/user/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-        const certs = await res.json();
-        list.innerHTML = '';
-        if (certs.length === 0) { list.innerHTML = '<p>Você ainda não possui certificados.</p>'; return; }
-        certs.forEach(cert => {
-            const certItem = document.createElement('div');
-            certItem.className = 'subject-card';
-            certItem.innerHTML = `<h3>Certificado: ${cert.subject_name}</h3>`;
-            certItem.onclick = () => showCertificate(cert);
-            list.appendChild(certItem);
-        });
-    } catch (e) {
-        list.innerHTML = 'Erro ao carregar certificados.';
-    }
-}
-function showCertificate(cert) {
-    const modal = document.getElementById('certificate-modal');
-    const content = document.getElementById('certificate-content');
-    content.innerHTML = `<button id="print-cert-btn" onclick="window.print()">🖨️</button><button id="close-modal-btn" onclick="document.getElementById('certificate-modal').classList.remove('visible')">X</button><div id="certificate-text"><p style="font-size: 1.5rem; margin-bottom: 30px;">Certificado de Conclusão</p><p>Certificamos que</p><p style="font-size: 2rem; font-family: 'Brush Script MT', cursive; margin: 20px 0;">${cert.full_name}</p><p>concluiu a matéria <strong style="color: #333;">${cert.subject_name}</strong> no Projeto Sapiens,<br>pelo método Augenblicklich-Lernen.</p><p>Total de lições concluídas: ${cert.total_lessons}</p><p style="font-size: 4rem; margin-top: 20px;">🏅</p></div>`;
-    modal.classList.add('visible');
 }
 
-// --- NAVEGAÇÃO DE MATÉRIAS E LIÇÕES ---
 async function fetchSubjects() {
     if (!subjectsGrid) return;
     try {
         const response = await fetch(`${API_URL}/api/content/subjects`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!response.ok) throw new Error('Falha ao buscar matérias.');
         const data = await response.json();
-        
         subjectsGrid.innerHTML = '';
         if (data.main && data.main.length > 0) {
             data.main.forEach(subject => {
-                const card = document.createElement('div');
-                card.className = 'subject-card';
-                card.style.setProperty('--subject-color', subject.color_hex);
-                card.innerHTML = `<h3>${subject.name}</h3>`;
-                card.addEventListener('click', () => loadLessons(subject.id, subject.name));
-                subjectsGrid.appendChild(card);
+                const card = document.createElement('div'); card.className = 'subject-card'; card.style.setProperty('--subject-color', subject.color_hex); card.innerHTML = `<h3>${subject.name}</h3>`; card.addEventListener('click', () => loadLessons(subject.id, subject.name)); subjectsGrid.appendChild(card);
             });
         }
-        
         let extraContainer = document.getElementById('extra-subjects-container');
-        if (!extraContainer) {
-            extraContainer = document.createElement('div');
-            extraContainer.id = 'extra-subjects-container';
-            subjectsGrid.insertAdjacentElement('afterend', extraContainer);
-        }
-        
+        if (!extraContainer) { extraContainer = document.createElement('div'); extraContainer.id = 'extra-subjects-container'; subjectsGrid.insertAdjacentElement('afterend', extraContainer); }
         extraContainer.innerHTML = '';
         if (data.extra && data.extra.length > 0) {
             extraContainer.innerHTML = '<hr><h2>Matérias Extras</h2>';
             data.extra.forEach(subject => {
-                const card = document.createElement('div');
-                card.className = 'subject-card extra';
-                card.style.setProperty('--subject-color', subject.color_hex);
-                card.innerHTML = `<h3>${subject.name}</h3>`;
-                card.addEventListener('click', () => loadLessons(subject.id, subject.name));
-                extraContainer.appendChild(card);
+                const card = document.createElement('div'); card.className = 'subject-card extra'; card.style.setProperty('--subject-color', subject.color_hex); card.innerHTML = `<h3>${subject.name}</h3>`; card.addEventListener('click', () => loadLessons(subject.id, subject.name)); extraContainer.appendChild(card);
             });
         }
     } catch (error) {
@@ -183,6 +123,7 @@ async function fetchSubjects() {
         if (subjectsGrid) subjectsGrid.innerHTML = '<p>Erro ao carregar matérias.</p>';
     }
 }
+
 async function loadLessons(subjectId, subjectName) {
     if (!lessonView) return;
     showView('lesson-view');
@@ -210,6 +151,7 @@ async function loadLessons(subjectId, subjectName) {
         lessonView.innerHTML = `<h2>Erro.</h2><p>${error.message}</p>`;
     }
 }
+
 async function fetchReinforcementLessons() {
     const reinforcementSection = document.getElementById('reinforcement-section');
     const reinforcementList = document.getElementById('reinforcement-list');
@@ -236,7 +178,6 @@ async function fetchReinforcementLessons() {
     }
 }
 
-// --- LÓGICA DA LIÇÃO E QUIZ ---
 async function renderLessonContent(lessonId) {
     if (!lessonView) return;
     showView('lesson-view');
@@ -250,6 +191,7 @@ async function renderLessonContent(lessonId) {
         lessonView.innerHTML = `<h2>Erro.</h2><p>${error.message}</p>`;
     }
 }
+
 function createYouTubePlayer(lesson) {
     let interval;
     try {
@@ -275,6 +217,7 @@ function createYouTubePlayer(lesson) {
     document.getElementById('show-text-btn')?.addEventListener('click', () => { const el = document.getElementById('text-content'); el.style.display = 'block'; scrollToElement(el); });
     document.getElementById('start-quiz-btn')?.addEventListener('click', () => { document.getElementById('lesson-main-content').style.display = 'none'; renderQuiz(lesson); });
 }
+
 function showPostVideoContent() {
     const el = document.getElementById('post-video-content');
     if (el && el.style.display === 'none') {
@@ -282,6 +225,7 @@ function showPostVideoContent() {
         scrollToElement(el);
     }
 }
+
 async function renderQuiz(lesson) {
     fetch(`${API_URL}/api/content/unlock-reinforcement`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ userId, triggerLessonId: lesson.id }) }).then(res => res.json()).then(data => { if (data.unlocked) showReinforcementToast(data.title); });
     const quizWrapper = document.getElementById('quiz-content-wrapper');
@@ -297,8 +241,125 @@ async function renderQuiz(lesson) {
     function renderQuestion1() { const correctAnswer = lesson.q1_options[0]; quizContent.innerHTML = `<h3>Questão 1 (Treino)</h3><p>${lesson.q1_text}</p><div id="timer"></div><div class="options-container"></div><button id="confirm-answer-btn" disabled>Confirmar</button>`; const optionsContainer = quizContent.querySelector('.options-container'); const timerDisplay = document.getElementById('timer'); const onTimeUp = () => handleAnswer('q1', correctAnswer, null, 'O tempo acabou!'); startTimer(lesson.q1_time, timerDisplay, onTimeUp); [...lesson.q1_options].sort(() => Math.random() - 0.5).forEach(option => { optionsContainer.innerHTML += `<button class="option-btn">${option}</button>`; }); selectedOption = null; optionsContainer.querySelectorAll('.option-btn').forEach(btn => { btn.addEventListener('click', () => { if (selectedOption) selectedOption.classList.remove('selected'); selectedOption = btn; btn.classList.add('selected'); quizContent.querySelector('#confirm-answer-btn').disabled = false; }); }); quizContent.querySelector('#confirm-answer-btn').addEventListener('click', () => handleAnswer('q1', correctAnswer, selectedOption ? selectedOption.textContent : null)); }
     renderQuestion1();
 }
-async function renderReinforcementLesson(lessonId) { if (!lessonView) return; showView('lesson-view'); lessonView.innerHTML = `<h2>Carregando...</h2>`; try { const res = await fetch(`${API_URL}/api/content/reinforcement-lesson/${lessonId}`); const rfLesson = await res.json(); const content = rfLesson.content; let html = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar</button><h2>Reforço: ${rfLesson.title}</h2>`; if (content.video_url) html += `<div id="video-placeholder"><iframe width="100%" height="480" src="${content.video_url.replace('watch?v=', 'embed/')}" frameborder="0" allowfullscreen></iframe></div>`; if (content.image_url) html += `<img src="${content.image_url}" alt="Imagem de reforço" style="max-width: 100%; margin-top: 20px;">`; if (content.audio_url) html += `<audio controls src="${content.audio_url}" style="width: 100%; margin-top: 10px;"></audio>`; if (content.text) html += `<div style="margin-top: 20px;">${content.text}</div>`; if (content.questions && content.questions.length > 0) { html += `<hr style="margin-top: 30px;"><h3>Questões de Treino</h3>`; content.questions.forEach((q, index) => { html += `<div class="quiz-question" style="margin-bottom: 30px;"><h4>Questão ${index + 1}</h4><p>${q.text}</p><div class="options-container">${q.options.map(opt => `<button class="option-btn">${opt}</button>`).join('')}</div></div>`; }); } lessonView.innerHTML = html; } catch (error) { console.error("Erro ao renderizar reforço:", error); lessonView.innerHTML = `<h2>Erro ao carregar.</h2>`; } }
-function showReinforcementToast(title) { let toast = document.getElementById('reinforcement-toast'); if (!toast) { toast = document.createElement('div'); toast.id = 'reinforcement-toast'; document.body.appendChild(toast); } toast.textContent = `Nova lição de reforço desbloqueada: ${title}!`; toast.classList.add('show'); setTimeout(() => { toast.classList.remove('show'); }, 5000); }
-async function handleSubjectFinished(subjectId) { const fullName = prompt("Parabéns! Você concluiu todas as lições!\n\nPara gerar seu certificado, insira seu nome completo:", ""); if (fullName && fullName.trim() && fullName.length <= 40) { try { await fetch(`${API_URL}/api/content/generate-certificate`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ userId, subjectId, fullName: fullName.trim() }) }); alert('Certificado gerado! Acesse em "Meus Certificados".'); loadLessons(subjectId, ""); } catch (error) { alert("Erro ao gerar certificado."); } } else if (fullName) { alert("Nome inválido (máximo 40 caracteres)."); } }
-async function loadCertificates() { showView('certificates-view'); const list = document.getElementById('certificates-list'); list.innerHTML = 'Carregando...'; try { const res = await fetch(`${API_URL}/api/content/certificates/user/${userId}`, { headers: { 'Authorization': `Bearer ${token}` }}); const certs = await res.json(); list.innerHTML = ''; if (certs.length === 0) { list.innerHTML = '<p>Você ainda não possui certificados.</p>'; return; } certs.forEach(cert => { const item = document.createElement('div'); item.className = 'subject-card'; item.innerHTML = `<h3>Certificado: ${cert.subject_name}</h3>`; item.onclick = () => showCertificate(cert); list.appendChild(item); }); } catch (e) { list.innerHTML = 'Erro ao carregar.'; } }
-function showCertificate(cert) { const modal = document.getElementById('certificate-modal'); const content = document.getElementById('certificate-content'); content.innerHTML = `<button id="print-cert-btn" onclick="window.print()">🖨️</button><button id="close-modal-btn" onclick="document.getElementById('certificate-modal').classList.remove('visible')">X</button><div id="certificate-text"><p style="font-size: 1.5rem; margin-bottom: 30px;">Certificado de Conclusão</p><p>Certificamos que</p><p style="font-size: 2rem; font-family: 'Brush Script MT', cursive; margin: 20px 0;">${cert.full_name}</p><p>concluiu a matéria <strong style="color: #333;">${cert.subject_name}</strong> no Projeto Sapiens,<br>pelo método Augenblicklich-Lernen.</p><p>Total de lições concluídas: ${cert.total_lessons}</p><p style="font-size: 4rem; margin-top: 20px;">🏅</p></div>`; modal.classList.add('visible');}
+
+async function renderReinforcementLesson(lessonId) {
+    if (!lessonView) return;
+    showView('lesson-view');
+    lessonView.innerHTML = `<h2>Carregando lição de reforço...</h2>`;
+    try {
+        const res = await fetch(`${API_URL}/api/content/reinforcement-lesson/${lessonId}`);
+        if (!res.ok) throw new Error("Não foi possível carregar a lição de reforço.");
+        const rfLesson = await res.json();
+        const content = rfLesson.content;
+        let html = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar</button><h2>Reforço: ${rfLesson.title}</h2>`;
+        if (content.video_url) { html += `<div id="video-placeholder"><iframe width="100%" height="480" src="${content.video_url.replace('watch?v=', 'embed/')}" frameborder="0" allowfullscreen></iframe></div>`; }
+        if (content.image_url) { html += `<img src="${content.image_url}" alt="Imagem de reforço" style="max-width: 100%; margin-top: 20px;">`; }
+        if (content.audio_url) { html += `<audio controls src="${content.audio_url}" style="width: 100%; margin-top: 10px;"></audio>`; }
+        if (content.text) { html += `<div style="margin-top: 20px;">${content.text}</div>`; }
+        if (content.questions && content.questions.length > 0) {
+            html += `<hr style="margin-top: 30px;"><h3>Questões de Treino</h3>`;
+            content.questions.forEach((q, index) => {
+                html += `<div class="quiz-question" style="margin-bottom: 30px;"><h4>Questão ${index + 1}</h4><p>${q.text}</p><div class="options-container">${q.options.map(opt => `<button class="option-btn">${opt}</button>`).join('')}</div></div>`;
+            });
+        }
+        lessonView.innerHTML = html;
+    } catch (error) {
+        console.error("Erro ao renderizar lição de reforço:", error);
+        lessonView.innerHTML = `<h2>Erro ao carregar lição de reforço.</h2>`;
+    }
+}
+
+function showReinforcementToast(title) {
+    let toast = document.getElementById('reinforcement-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'reinforcement-toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = `Nova lição de reforço desbloqueada: ${title}!`;
+    toast.classList.add('show');
+    setTimeout(() => { toast.classList.remove('show'); }, 5000);
+}
+
+async function handleSubjectFinished(subjectId) {
+    const fullName = prompt("Parabéns! Você concluiu todas as lições desta matéria!\n\nPara gerar seu certificado, por favor, insira seu nome completo:", "");
+    if (fullName && fullName.trim() && fullName.length <= 40) {
+        try {
+            await fetch(`${API_URL}/api/content/generate-certificate`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ userId, subjectId, fullName: fullName.trim() }) });
+            alert('Certificado gerado! Acesse em "Meus Certificados".');
+            loadLessons(subjectId, "");
+        } catch (error) {
+            alert("Houve um erro ao gerar seu certificado.");
+        }
+    } else if (fullName) {
+        alert("Nome inválido (máximo 40 caracteres).");
+    }
+}
+
+async function loadCertificates() {
+    showView('certificates-view');
+    const list = document.getElementById('certificates-list');
+    list.innerHTML = 'Carregando...';
+    try {
+        const res = await fetch(`${API_URL}/api/content/certificates/user/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const certs = await res.json();
+        list.innerHTML = '';
+        if (certs.length === 0) { list.innerHTML = '<p>Você ainda não possui certificados.</p>'; return; }
+        certs.forEach(cert => {
+            const item = document.createElement('div');
+            item.className = 'subject-card';
+            item.innerHTML = `<h3>Certificado: ${cert.subject_name}</h3>`;
+            item.onclick = () => showCertificate(cert);
+            list.appendChild(item);
+        });
+    } catch (e) {
+        list.innerHTML = 'Erro ao carregar.';
+    }
+}
+
+function showCertificate(cert) {
+    const modal = document.getElementById('certificate-modal');
+    const content = document.getElementById('certificate-content');
+    content.innerHTML = `<button id="print-cert-btn" onclick="window.print()">🖨️</button><button id="close-modal-btn" onclick="document.getElementById('certificate-modal').classList.remove('visible')">X</button><div id="certificate-text"><p style="font-size: 1.5rem; margin-bottom: 30px;">Certificado de Conclusão</p><p>Certificamos que</p><p style="font-size: 2rem; font-family: 'Brush Script MT', cursive; margin: 20px 0;">${cert.full_name}</p><p>concluiu a matéria <strong style="color: #333;">${cert.subject_name}</strong> no Projeto Sapiens,<br>pelo método Augenblicklich-Lernen.</p><p>Total de lições concluídas: ${cert.total_lessons}</p><p style="font-size: 4rem; margin-top: 20px;">🏅</p></div>`;
+    modal.classList.add('visible');
+}
+
+
+// =================================================================================
+// 3. PONTO DE ENTRADA E EXECUÇÃO
+// =================================================================================
+
+function initializeApp() {
+    // Inicializa as variáveis de elementos aqui, depois que o DOM está carregado
+    lessonView = document.getElementById('lesson-view');
+    subjectsGrid = document.getElementById('subjects-grid');
+
+    token = localStorage.getItem('token');
+    userId = localStorage.getItem('userId');
+
+    setupEventListeners();
+
+    if (token && userId) {
+        showView('subjects-view');
+        fetchSubjects();
+        fetchReinforcementLessons();
+        setupUserAreaAndScores();
+    } else {
+        showView('login-view');
+        const userArea = document.getElementById('user-area');
+        if(userArea) userArea.innerHTML = '<button id="login-button">Entrar</button>';
+        document.getElementById('login-button')?.addEventListener('click', () => showView('login-view'));
+    }
+}
+
+function setupEventListeners() {
+    document.getElementById('show-register')?.addEventListener('click', e => { e.preventDefault(); showView('register-view'); });
+    document.getElementById('show-login')?.addEventListener('click', e => { e.preventDefault(); showView('login-view'); });
+    document.getElementById('login-form')?.addEventListener('submit', handleLogin);
+    document.getElementById('register-form')?.addEventListener('submit', handleRegister);
+    document.body.addEventListener('click', e => {
+        if (e.target?.classList.contains('start-lesson-btn')) {
+            renderLessonContent(e.target.dataset.lessonId);
+        }
+    });
+}
