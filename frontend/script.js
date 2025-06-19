@@ -237,6 +237,22 @@ async function renderReinforcementLesson(lessonId) {
                 btn.classList.add('selected');
             });
         });
+
+// ADICIONE ESTE BLOCO PARA DAR VIDA AOS BOTÕES DE REFORÇO
+    lessonView.querySelectorAll('.quiz-question .option-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const questionBlock = btn.closest('.quiz-question');
+            const correctAnswer = "A resposta correta viria do seu 'content' no DB"; // Placeholder
+            
+            // Desabilita todos os botões da questão
+            questionBlock.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+            
+            // Marca a selecionada como verde (sem verificação, já que é treino)
+            btn.classList.add('correct');
+        });
+    });
+
+
     } catch (error) {
         console.error("Erro ao renderizar lição de reforço:", error);
         lessonView.innerHTML = `<h2>Erro ao carregar lição de reforço.</h2>`;
@@ -332,7 +348,7 @@ function setupEventListeners() {
             renderLessonContent(target.dataset.lessonId);
         }
 
-        // --- CORREÇÕES ABAIXO ---
+        // --- LÓGICA QUE ESTAVA FALTANDO ---
 
         // Botão "Meu Score" no cabeçalho
         if (targetId === 'score-toggle-btn') {
@@ -349,10 +365,10 @@ function setupEventListeners() {
         }
 
         // Card de um certificado específico na lista
-        const clickedCertCard = e.target.closest('.certificate-card');
-if (clickedCertCard && clickedCertCard.dataset.certData) {
-    showCertificate(JSON.parse(clickedCertCard.dataset.certData));
-}
+        const certCard = target.closest('.certificate-card');
+        if (certCard && certCard.dataset.certData) {
+            showCertificate(JSON.parse(certCard.dataset.certData));
+        }
 
         // Card de uma lição de reforço na lista
         const reinforcementCard = target.closest('.reinforcement-card');
