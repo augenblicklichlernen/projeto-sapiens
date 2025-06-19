@@ -1,14 +1,12 @@
 // =================================================================================
-// SAPIENS - script.js - VERSÃO FINAL ESTÁVEL
+// SAPIENS - script.js - VERSÃO FINAL ESTÁVEL - 20/06
 // =================================================================================
 
 // --- 1. CONFIGURAÇÃO E ESTADO GLOBAL ---
 const API_URL = 'https://sapiens-backend-ogz2.onrender.com';
-let token = localStorage.getItem('token');
-let userId = localStorage.getItem('userId');
+let token;
+let userId;
 let ytPlayer;
-
-// --- ELEMENTOS GLOBAIS DO DOM ---
 let lessonView;
 let subjectsGrid;
 
@@ -23,7 +21,7 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 function showView(viewId) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     const view = document.getElementById(viewId);
-    if (view) view.classList.add('active');
+    if(view) view.classList.add('active');
 }
 
 function scrollToElement(element) {
@@ -64,14 +62,10 @@ async function handleRegister(e) {
 function setupUserAreaAndScores() {
     const userArea = document.getElementById('user-area');
     userArea.innerHTML = `<span>Olá, ${localStorage.getItem('username')}!</span><button id="logout-button">Sair</button>`;
-    document.getElementById('logout-button').addEventListener('click', () => { localStorage.clear(); window.location.reload(); });
+    
     const scoreContainer = document.getElementById('score-bar-container');
     if (scoreContainer) scoreContainer.style.display = 'flex';
-    document.getElementById('score-toggle-btn')?.addEventListener('click', () => {
-        const panel = document.getElementById('score-panel');
-        panel.classList.toggle('visible');
-        if (panel.classList.contains('visible')) updateScores();
-    });
+    
     const headerRightGroup = document.querySelector('.header-right-group');
     let certButton = document.getElementById('my-certs-btn');
     if (headerRightGroup && !certButton) {
@@ -84,6 +78,7 @@ function setupUserAreaAndScores() {
 
 async function updateScores() {
     const scoreList = document.getElementById('score-list');
+    if (!scoreList) return;
     try {
         const res = await fetch(`${API_URL}/api/content/scores/user/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Falha ao buscar scores');
@@ -95,7 +90,7 @@ async function updateScores() {
                 scoreList.innerHTML += `<li><span class="score-name" style="color:${score.color_hex};">${score.name}</span><span class="score-value">${score.user_score}/${score.total_lessons} (${percentage}%)</span></li>`;
             });
         }
-    } catch (error) {
+    } catch(error) {
         console.error("Erro ao atualizar scores:", error);
         scoreList.innerHTML = '<li>Erro ao carregar.</li>';
     }
@@ -157,23 +152,6 @@ async function fetchReinforcementLessons() {
         if (lessons.length > 0) {
             reinforcementSection.style.display = 'block';
             reinforcementList.innerHTML = '';
-// ... dentro de renderReinforcementLesson, após a linha lessonView.innerHTML = html; ...
-
-    // ADICIONE ESTE BLOCO PARA DAR VIDA AOS BOTÕES
-    lessonView.querySelectorAll('.options-container .option-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            // Remove a seleção de outros botões na mesma questão
-            const parentOptions = btn.closest('.options-container');
-            parentOptions.querySelectorAll('.option-btn').forEach(otherBtn => {
-                otherBtn.classList.remove('selected');
-            });
-            // Adiciona a classe 'selected' ao botão clicado
-            btn.classList.add('selected');
-            // Futuramente, aqui poderia vir uma lógica de verificação de resposta
-        });
-    });
-
-} catch (error) { // ...
             lessons.forEach(lesson => {
                 const card = document.createElement('div');
                 card.className = 'subject-card reinforcement-card';
@@ -205,7 +183,7 @@ function createYouTubePlayer(lesson) {
     try {
         const videoId = new URL(lesson.video_url).searchParams.get('v');
         ytPlayer = new YT.Player('video-placeholder', { height: '480', width: '100%', videoId: videoId, events: { 'onStateChange': e => { if (e.data === YT.PlayerState.PLAYING) { interval = setInterval(() => { const duration = ytPlayer.getDuration(); if (duration > 0 && (ytPlayer.getCurrentTime() / duration) >= 0.8) { showPostVideoContent(); clearInterval(interval); } }, 1000); } else { clearInterval(interval); } } } });
-    } catch(e) { console.error("URL do vídeo inválida:", lesson.video_url); document.getElementById('video-placeholder').innerHTML = '<p>Vídeo indisponível.</p>'}
+    } catch(e) { console.error("URL do vídeo inválida:", lesson.video_url); document.getElementById('video-placeholder').innerHTML = '<p>Vídeo indisponível.</p>'; }
     document.getElementById('show-text-btn')?.addEventListener('click', () => { const el = document.getElementById('text-content'); el.style.display = 'block'; scrollToElement(el); });
     document.getElementById('start-quiz-btn')?.addEventListener('click', () => { document.getElementById('lesson-main-content').style.display = 'none'; renderQuiz(lesson); });
 }
@@ -218,8 +196,7 @@ function showPostVideoContent() {
 async function renderQuiz(lesson) {
     fetch(`${API_URL}/api/content/unlock-reinforcement`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ userId, triggerLessonId: lesson.id }) }).then(res => res.json()).then(data => { if (data.unlocked) { showReinforcementToast(data.title); fetchReinforcementLessons(); } });
     const quizWrapper = document.getElementById('quiz-content-wrapper');
-    quizWrapper.style.display = 'block';
-    quizWrapper.innerHTML = '<div id="quiz-content"></div>';
+    quizWrapper.style.display = 'block'; quizWrapper.innerHTML = '<div id="quiz-content"></div>';
     const quizContent = document.getElementById('quiz-content');
     scrollToElement(quizWrapper);
     let timerInterval, selectedOption = null;
@@ -234,17 +211,17 @@ async function renderQuiz(lesson) {
 async function renderReinforcementLesson(lessonId) {
     if (!lessonView) return;
     showView('lesson-view');
-    lessonView.innerHTML = `<h2>Carregando lição de reforço...</h2>`;
+    lessonView.innerHTML = `<h2>Carregando...</h2>`;
     try {
         const res = await fetch(`${API_URL}/api/content/reinforcement-lesson/${lessonId}`);
         if (!res.ok) throw new Error("Não foi possível carregar a lição de reforço.");
         const rfLesson = await res.json();
         const content = rfLesson.content;
         let html = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar</button><h2>Reforço: ${rfLesson.title}</h2>`;
-        if (content.video_url) html += `<div id="video-placeholder"><iframe width="100%" height="480" src="${content.video_url.replace('watch?v=', 'embed/')}" frameborder="0" allowfullscreen></iframe></div>`;
-        if (content.image_url) html += `<img src="${content.image_url}" alt="Imagem de reforço" style="max-width: 100%; margin-top: 20px;">`;
-        if (content.audio_url) html += `<audio controls src="${content.audio_url}" style="width: 100%; margin-top: 10px;"></audio>`;
-        if (content.text) html += `<div style="margin-top: 20px;">${content.text}</div>`;
+        if (content.video_url) { html += `<div id="video-placeholder"><iframe width="100%" height="480" src="${content.video_url.replace('watch?v=', 'embed/')}" frameborder="0" allowfullscreen></iframe></div>`; }
+        if (content.image_url) { html += `<img src="${content.image_url}" alt="Imagem de reforço" style="max-width: 100%; margin-top: 20px;">`; }
+        if (content.audio_url) { html += `<audio controls src="${content.audio_url}" style="width: 100%; margin-top: 10px;"></audio>`; }
+        if (content.text) { html += `<div style="margin-top: 20px;">${content.text}</div>`; }
         if (content.questions && content.questions.length > 0) {
             html += `<hr style="margin-top: 30px;"><h3>Questões de Treino</h3>`;
             content.questions.forEach((q, index) => {
@@ -252,19 +229,45 @@ async function renderReinforcementLesson(lessonId) {
             });
         }
         lessonView.innerHTML = html;
-    } catch (error) { console.error("Erro ao renderizar lição de reforço:", error); lessonView.innerHTML = `<h2>Erro ao carregar lição de reforço.</h2>`; }
+        // Adiciona interatividade aos botões da lição de reforço
+        lessonView.querySelectorAll('.quiz-question .option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const parentOptions = btn.closest('.options-container');
+                parentOptions.querySelectorAll('.option-btn').forEach(otherBtn => otherBtn.classList.remove('selected'));
+                btn.classList.add('selected');
+            });
+        });
+    } catch (error) {
+        console.error("Erro ao renderizar lição de reforço:", error);
+        lessonView.innerHTML = `<h2>Erro ao carregar lição de reforço.</h2>`;
+    }
 }
 
-function showReinforcementToast(title) { let toast = document.getElementById('reinforcement-toast'); if (!toast) { toast = document.createElement('div'); toast.id = 'reinforcement-toast'; document.body.appendChild(toast); } toast.textContent = `Nova lição de reforço desbloqueada: ${title}!`; toast.classList.add('show'); setTimeout(() => { toast.classList.remove('show'); }, 5000); }
+function showReinforcementToast(title) {
+    let toast = document.getElementById('reinforcement-toast');
+    if (!toast) { toast = document.createElement('div'); toast.id = 'reinforcement-toast'; document.body.appendChild(toast); }
+    toast.textContent = `Nova lição de reforço desbloqueada: ${title}!`;
+    toast.classList.add('show');
+    setTimeout(() => { toast.classList.remove('show'); }, 5000);
+}
 
-async function handleSubjectFinished(subjectId) { const fullName = prompt("Parabéns! Você concluiu todas as lições!\n\nPara gerar seu certificado, insira seu nome completo:", ""); if (fullName && fullName.trim() && fullName.length <= 40) { try { await fetch(`${API_URL}/api/content/generate-certificate`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ userId, subjectId, fullName: fullName.trim() }) }); alert('Certificado gerado! Acesse em "Meus Certificados".'); loadLessons(subjectId, ""); } catch (error) { alert("Houve um erro ao gerar seu certificado."); } } else if (fullName) { alert("Nome inválido (máximo 40 caracteres)."); } }
+async function handleSubjectFinished(subjectId) {
+    const fullName = prompt("Parabéns! Você concluiu todas as lições desta matéria!\n\nPara gerar seu certificado, por favor, insira seu nome completo:", "");
+    if (fullName && fullName.trim() && fullName.length <= 40) {
+        try {
+            await fetch(`${API_URL}/api/content/generate-certificate`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ userId, subjectId, fullName: fullName.trim() }) });
+            alert('Certificado gerado! Acesse em "Meus Certificados".');
+            loadLessons(subjectId, "");
+        } catch (error) { alert("Houve um erro ao gerar seu certificado."); }
+    } else if (fullName) { alert("Nome inválido (máximo 40 caracteres)."); }
+}
 
 async function loadCertificates() {
     showView('certificates-view');
     const list = document.getElementById('certificates-list');
     list.innerHTML = 'Carregando...';
     try {
-        const res = await fetch(`${API_URL}/api/content/certificates/user/${userId}`, { headers: { 'Authorization': `Bearer ${token}` }});
+        const res = await fetch(`${API_URL}/api/content/certificates/user/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } });
         const certs = await res.json();
         list.innerHTML = '';
         if (certs.length === 0) { list.innerHTML = '<p>Você ainda não possui certificados.</p>'; return; }
@@ -275,7 +278,9 @@ async function loadCertificates() {
             item.dataset.certData = JSON.stringify(cert);
             list.appendChild(item);
         });
-    } catch (e) { list.innerHTML = 'Erro ao carregar.'; }
+    } catch (e) {
+        list.innerHTML = 'Erro ao carregar.';
+    }
 }
 
 function showCertificate(cert) {
@@ -283,21 +288,20 @@ function showCertificate(cert) {
     const content = document.getElementById('certificate-content');
     content.innerHTML = `<button id="print-cert-btn" onclick="window.print()">🖨️</button><button id="close-modal-btn">X</button><div id="certificate-text"><p style="font-size: 1.5rem; margin-bottom: 30px;">Certificado de Conclusão</p><p>Certificamos que</p><p style="font-size: 2rem; font-family: 'Brush Script MT', cursive; margin: 20px 0;">${cert.full_name}</p><p>concluiu a matéria <strong style="color: #333;">${cert.subject_name}</strong> no Projeto Sapiens,<br>pelo método Augenblicklich-Lernen.</p><p>Total de lições concluídas: ${cert.total_lessons}</p><p style="font-size: 4rem; margin-top: 20px;">🏅</p></div>`;
     modal.classList.add('visible');
-    content.querySelector('#close-modal-btn').addEventListener('click', () => {
-        modal.classList.remove('visible');
-    });
 }
 
+// =================================================================================
+// 4. INICIALIZAÇÃO E CONFIGURAÇÃO DE EVENTOS CENTRALIZADA
+// =================================================================================
 
-// =================================================================================
-// 3. PONTO DE ENTRADA E CONFIGURAÇÃO DE EVENTOS
-// =================================================================================
 function initializeApp() {
     lessonView = document.getElementById('lesson-view');
     subjectsGrid = document.getElementById('subjects-grid');
     token = localStorage.getItem('token');
     userId = localStorage.getItem('userId');
+    
     setupEventListeners();
+
     if (token && userId) {
         showView('subjects-view');
         fetchSubjects();
@@ -309,48 +313,26 @@ function initializeApp() {
         if(userArea) userArea.innerHTML = '<button id="login-button">Entrar</button>';
     }
 }
+
 function setupEventListeners() {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
-        const targetId = target.id;
-        const targetClasses = target.classList;
+        if (target.id === 'show-register') { e.preventDefault(); showView('register-view'); }
+        if (target.id === 'show-login') { e.preventDefault(); showView('login-view'); }
+        if (target.id === 'login-button') { showView('login-view'); }
+        if (target.classList.contains('start-lesson-btn')) { renderLessonContent(target.dataset.lessonId); }
+        if (target.id === 'my-certs-btn') { loadCertificates(); }
 
-        // Navegação de Login/Registro
-        if (targetId === 'show-register' || targetId === 'show-login') { e.preventDefault(); showView(targetId); }
-        if (targetId === 'login-button') { showView('login-view'); }
-
-        // Iniciar Lição Principal
-        if (targetClasses.contains('start-lesson-btn')) {
-            renderLessonContent(target.dataset.lessonId);
-        }
-        
-        // Iniciar Lição de Reforço
-        const reinforcementCard = target.closest('.reinforcement-card');
-        if (reinforcementCard && reinforcementCard.dataset.lessonId) {
-            renderReinforcementLesson(reinforcementCard.dataset.lessonId);
-        }
-
-        // --- CORREÇÃO DO CERTIFICADO ABAIXO ---
-
-        // Botão "Meus Certificados" no header
-        if (targetId === 'my-certs-btn') {
-            loadCertificates();
-        }
-
-        // Card de um certificado específico na lista
         const certCard = target.closest('.certificate-card');
-        if (certCard && certCard.dataset.certData) {
-            const certData = JSON.parse(certCard.dataset.certData);
-            showCertificate(certData);
-        }
+        if (certCard?.dataset.certData) { showCertificate(JSON.parse(certCard.dataset.certData)); }
 
-        // Botão de fechar o modal do certificado
-        if (target.closest('#certificate-modal') && target.id === 'close-modal-btn') {
-            document.getElementById('certificate-modal').classList.remove('visible');
-        }
+        const reinforcementCard = target.closest('.reinforcement-card');
+        if (reinforcementCard?.dataset.lessonId) { renderReinforcementLesson(reinforcementCard.dataset.lessonId); }
+        
+        const closeModalBtn = target.closest('#close-modal-btn');
+        if(closeModalBtn) { document.getElementById('certificate-modal').classList.remove('visible'); }
     });
 
-    // Ouvinte para os formulários
     document.body.addEventListener('submit', (e) => {
         if (e.target.id === 'login-form') { handleLogin(e); }
         if (e.target.id === 'register-form') { handleRegister(e); }
