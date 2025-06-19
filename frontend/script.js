@@ -349,10 +349,10 @@ function setupEventListeners() {
         }
 
         // Card de um certificado específico na lista
-        const certCard = target.closest('.certificate-card');
-        if (certCard && certCard.dataset.certData) {
-            showCertificate(JSON.parse(certCard.dataset.certData));
-        }
+        const clickedCertCard = e.target.closest('.certificate-card');
+if (clickedCertCard && clickedCertCard.dataset.certData) {
+    showCertificate(JSON.parse(clickedCertCard.dataset.certData));
+}
 
         // Card de uma lição de reforço na lista
         const reinforcementCard = target.closest('.reinforcement-card');
