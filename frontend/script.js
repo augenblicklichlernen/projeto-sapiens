@@ -157,6 +157,23 @@ async function fetchReinforcementLessons() {
         if (lessons.length > 0) {
             reinforcementSection.style.display = 'block';
             reinforcementList.innerHTML = '';
+// ... dentro de renderReinforcementLesson, após a linha lessonView.innerHTML = html; ...
+
+    // ADICIONE ESTE BLOCO PARA DAR VIDA AOS BOTÕES
+    lessonView.querySelectorAll('.options-container .option-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove a seleção de outros botões na mesma questão
+            const parentOptions = btn.closest('.options-container');
+            parentOptions.querySelectorAll('.option-btn').forEach(otherBtn => {
+                otherBtn.classList.remove('selected');
+            });
+            // Adiciona a classe 'selected' ao botão clicado
+            btn.classList.add('selected');
+            // Futuramente, aqui poderia vir uma lógica de verificação de resposta
+        });
+    });
+
+} catch (error) { // ...
             lessons.forEach(lesson => {
                 const card = document.createElement('div');
                 card.className = 'subject-card reinforcement-card';
@@ -295,15 +312,45 @@ function initializeApp() {
 function setupEventListeners() {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
-        if (target.id === 'show-register') { e.preventDefault(); showView('register-view'); }
-        if (target.id === 'show-login') { e.preventDefault(); showView('login-view'); }
-        if (target.id === 'login-button') { showView('login-view'); }
-        if (target.classList.contains('start-lesson-btn')) { renderLessonContent(target.dataset.lessonId); }
-        const certCard = target.closest('.certificate-card');
-        if (certCard && certCard.dataset.certData) { const certData = JSON.parse(certCard.dataset.certData); showCertificate(certData); }
+        const targetId = target.id;
+        const targetClasses = target.classList;
+
+        // Navegação de Login/Registro
+        if (targetId === 'show-register' || targetId === 'show-login') { e.preventDefault(); showView(targetId); }
+        if (targetId === 'login-button') { showView('login-view'); }
+
+        // Iniciar Lição Principal
+        if (targetClasses.contains('start-lesson-btn')) {
+            renderLessonContent(target.dataset.lessonId);
+        }
+        
+        // Iniciar Lição de Reforço
         const reinforcementCard = target.closest('.reinforcement-card');
-        if (reinforcementCard && reinforcementCard.dataset.lessonId) { renderReinforcementLesson(reinforcementCard.dataset.lessonId); }
+        if (reinforcementCard && reinforcementCard.dataset.lessonId) {
+            renderReinforcementLesson(reinforcementCard.dataset.lessonId);
+        }
+
+        // --- CORREÇÃO DO CERTIFICADO ABAIXO ---
+
+        // Botão "Meus Certificados" no header
+        if (targetId === 'my-certs-btn') {
+            loadCertificates();
+        }
+
+        // Card de um certificado específico na lista
+        const certCard = target.closest('.certificate-card');
+        if (certCard && certCard.dataset.certData) {
+            const certData = JSON.parse(certCard.dataset.certData);
+            showCertificate(certData);
+        }
+
+        // Botão de fechar o modal do certificado
+        if (target.closest('#certificate-modal') && target.id === 'close-modal-btn') {
+            document.getElementById('certificate-modal').classList.remove('visible');
+        }
     });
+
+    // Ouvinte para os formulários
     document.body.addEventListener('submit', (e) => {
         if (e.target.id === 'login-form') { handleLogin(e); }
         if (e.target.id === 'register-form') { handleRegister(e); }
