@@ -314,25 +314,59 @@ function initializeApp() {
     }
 }
 
+// =================================================================================
+// SUBSTITUA A SUA FUNÇÃO setupEventListeners PELA VERSÃO ABAIXO
+// =================================================================================
 function setupEventListeners() {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
-        if (target.id === 'show-register') { e.preventDefault(); showView('register-view'); }
-        if (target.id === 'show-login') { e.preventDefault(); showView('login-view'); }
-        if (target.id === 'login-button') { showView('login-view'); }
-        if (target.classList.contains('start-lesson-btn')) { renderLessonContent(target.dataset.lessonId); }
-        if (target.id === 'my-certs-btn') { loadCertificates(); }
+        const targetId = target.id;
 
+        // Botões de navegação de Login/Registro
+        if (targetId === 'show-register') { e.preventDefault(); showView('register-view'); }
+        if (targetId === 'show-login') { e.preventDefault(); showView('login-view'); }
+        if (targetId === 'login-button') { showView('login-view'); }
+
+        // Botão para iniciar uma lição principal
+        if (target.classList.contains('start-lesson-btn')) {
+            renderLessonContent(target.dataset.lessonId);
+        }
+
+        // --- CORREÇÕES ABAIXO ---
+
+        // Botão "Meu Score" no cabeçalho
+        if (targetId === 'score-toggle-btn') {
+            const panel = document.getElementById('score-panel');
+            panel.classList.toggle('visible');
+            if (panel.classList.contains('visible')) {
+                updateScores();
+            }
+        }
+
+        // Botão "Meus Certificados" no cabeçalho
+        if (targetId === 'my-certs-btn') {
+            loadCertificates();
+        }
+
+        // Card de um certificado específico na lista
         const certCard = target.closest('.certificate-card');
-        if (certCard?.dataset.certData) { showCertificate(JSON.parse(certCard.dataset.certData)); }
+        if (certCard && certCard.dataset.certData) {
+            showCertificate(JSON.parse(certCard.dataset.certData));
+        }
 
+        // Card de uma lição de reforço na lista
         const reinforcementCard = target.closest('.reinforcement-card');
-        if (reinforcementCard?.dataset.lessonId) { renderReinforcementLesson(reinforcementCard.dataset.lessonId); }
+        if (reinforcementCard && reinforcementCard.dataset.lessonId) {
+            renderReinforcementLesson(reinforcementCard.dataset.lessonId);
+        }
         
-        const closeModalBtn = target.closest('#close-modal-btn');
-        if(closeModalBtn) { document.getElementById('certificate-modal').classList.remove('visible'); }
+        // Botão de fechar o modal do certificado
+        if (target.id === 'close-modal-btn') {
+            document.getElementById('certificate-modal').classList.remove('visible');
+        }
     });
 
+    // Ouvinte para os formulários
     document.body.addEventListener('submit', (e) => {
         if (e.target.id === 'login-form') { handleLogin(e); }
         if (e.target.id === 'register-form') { handleRegister(e); }
