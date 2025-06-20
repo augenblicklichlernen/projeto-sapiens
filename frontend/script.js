@@ -225,10 +225,36 @@ async function renderReinforcementLesson(lessonId) {
         if (content.questions && content.questions.length > 0) {
             html += `<hr style="margin-top: 30px;"><h3>Questões de Treino</h3>`;
             content.questions.forEach((q, index) => {
-                html += `<div class="quiz-question" style="margin-bottom: 30px;"><h4>Questão ${index + 1}</h4><p>${q.text}</p><div class="options-container">${q.options.map(opt => `<button class="option-btn">${opt}</button>`).join('')}</div></div>`;
+                html += `<div class="quiz-question" style="margin-bottom: 30px;" data-correct-answer="${q.options[0]}"><h4>Questão ${index + 1}</h4>Questão ${index + 1}</h4><p>${q.text}</p><div class="options-container">${q.options.map(opt => `<button class="option-btn">${opt}</button>`).join('')}</div></div>`;
             });
         }
         lessonView.innerHTML = html;
+ // ADICIONE ESTE BLOCO PARA DAR VIDA AOS BOTÕES
+    lessonView.querySelectorAll('.quiz-question .option-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const questionBlock = btn.closest('.quiz-question');
+            const correctAnswer = questionBlock.dataset.correctAnswer; // Pega a resposta correta do HTML
+            const selectedAnswer = btn.textContent;
+            const feedbackDiv = questionBlock.querySelector('.rf-feedback');
+
+            // Desabilita todos os botões da questão para impedir nova resposta
+            questionBlock.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+            // Lógica de verificação e feedback visual
+            if (selectedAnswer === correctAnswer) {
+                btn.classList.add('correct');
+                feedbackDiv.textContent = 'Resposta Correta!';
+                feedbackDiv.className = 'rf-feedback correct';
+            } else {
+                btn.classList.add('incorrect');
+                feedbackDiv.textContent = `Incorreto. A resposta certa era: ${correctAnswer}`;
+                feedbackDiv.className = 'rf-feedback incorrect';
+            }
+            feedbackDiv.style.display = 'block';
+        });
+    });
+
+} catch (error) { // ...
         // Adiciona interatividade aos botões da lição de reforço
         lessonView.querySelectorAll('.quiz-question .option-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -307,32 +333,9 @@ function showCertificate(cert) {
 }
 
 // =================================================================================
-// 4. INICIALIZAÇÃO E CONFIGURAÇÃO DE EVENTOS CENTRALIZADA
+// 4. INICIALIZAÇÃO E CONFIGURAÇÃO DE EVENTOS (VERSÃO FINAL CORRIGIDA)
 // =================================================================================
 
-function initializeApp() {
-    lessonView = document.getElementById('lesson-view');
-    subjectsGrid = document.getElementById('subjects-grid');
-    token = localStorage.getItem('token');
-    userId = localStorage.getItem('userId');
-    
-    setupEventListeners();
-
-    if (token && userId) {
-        showView('subjects-view');
-        fetchSubjects();
-        fetchReinforcementLessons();
-        setupUserAreaAndScores();
-    } else {
-        showView('login-view');
-        const userArea = document.getElementById('user-area');
-        if(userArea) userArea.innerHTML = '<button id="login-button">Entrar</button>';
-    }
-}
-
-// =================================================================================
-// SUBSTITUA A SUA FUNÇÃO setupEventListeners PELA VERSÃO ABAIXO
-// =================================================================================
 function setupEventListeners() {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
@@ -348,13 +351,11 @@ function setupEventListeners() {
             renderLessonContent(target.dataset.lessonId);
         }
 
-        // --- LÓGICA QUE ESTAVA FALTANDO ---
-
         // Botão "Meu Score" no cabeçalho
         if (targetId === 'score-toggle-btn') {
             const panel = document.getElementById('score-panel');
-            panel.classList.toggle('visible');
-            if (panel.classList.contains('visible')) {
+            if(panel) panel.classList.toggle('visible');
+            if (panel && panel.classList.contains('visible')) {
                 updateScores();
             }
         }
@@ -387,4 +388,29 @@ function setupEventListeners() {
         if (e.target.id === 'login-form') { handleLogin(e); }
         if (e.target.id === 'register-form') { handleRegister(e); }
     });
+}
+
+function initializeApp() {
+    // Define as variáveis globais de elementos do DOM
+    lessonView = document.getElementById('lesson-view');
+    subjectsGrid = document.getElementById('subjects-grid');
+
+    // Pega os dados de autenticação do armazenamento local
+    token = localStorage.getItem('token');
+    userId = localStorage.getItem('userId');
+    
+    // Configura TODOS os ouvintes de eventos
+    setupEventListeners();
+
+    // Decide qual tela mostrar
+    if (token && userId) {
+        showView('subjects-view');
+        fetchSubjects();
+        fetchReinforcementLessons();
+        setupUserAreaAndScores();
+    } else {
+        showView('login-view');
+        const userArea = document.getElementById('user-area');
+        if(userArea) userArea.innerHTML = '<button id="login-button">Entrar</button>';
+    }
 }
