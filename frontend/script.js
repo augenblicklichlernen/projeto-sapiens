@@ -24,5 +24,60 @@ async function handleSubjectFinished(id) { const name = prompt("Parabéns! Você
 async function loadCertificates() { showView('certificates-view'); const list = document.getElementById('certificates-list'); list.innerHTML = 'Carregando...'; try { const res = await fetch(`${API_URL}/api/content/certificates/user/${userId}`, { headers: { Authorization: `Bearer ${token}` } }); const certs = await res.json(); list.innerHTML = ''; if (certs.length === 0) { list.innerHTML = '<p>Nenhum certificado.</p>'; return; } certs.forEach(c => { const i = document.createElement('div'); i.className = 'subject-card certificate-card'; i.innerHTML = `<h3>Certificado: ${c.subject_name}</h3>`; i.dataset.certData = JSON.stringify(c); list.appendChild(i); }); } catch (e) { list.innerHTML = 'Erro ao carregar.'; } }
 function showCertificate(cert) { const m = document.getElementById('certificate-modal'), c = document.getElementById('certificate-content'); c.innerHTML = `<button id="print-cert-btn" onclick="window.print()">🖨️</button><button id="close-modal-btn">X</button><div><p>Certificado de Conclusão</p><p>Certificamos que</p><p>${cert.full_name}</p><p>concluiu a matéria <strong>${cert.subject_name}</strong>,<br>pelo método Augenblicklich-Lernen.</p><p>Lições: ${cert.total_lessons}</p><p>🏅</p></div>`; m.classList.add('visible'); }
 
-function setupEventListeners() { document.body.addEventListener('click', e => { const t = e.target; if (t.id === 'show-register' || t.id === 'show-login') { e.preventDefault(); showView(t.id); } if (t.id === 'login-button') showView('login-view'); if (t.classList.contains('start-lesson-btn')) renderLessonContent(t.dataset.lessonId); if (t.id === 'my-certs-btn') loadCertificates(); if (t.id === 'score-toggle-btn') { const p = document.getElementById('score-panel'); p.classList.toggle('visible'); if (p.classList.contains('visible')) updateScores(); } const cc = t.closest('.certificate-card'); if (cc?.dataset.certData) showCertificate(JSON.parse(cc.dataset.certData)); const rc = t.closest('.reinforcement-card'); if (rc?.dataset.lessonId) renderReinforcementLesson(rc.dataset.lessonId); if (t.id === 'close-modal-btn') document.getElementById('certificate-modal').classList.remove('visible'); }); document.body.addEventListener('submit', e => { if (e.target.id === 'login-form') handleLogin(e); if (e.target.id === 'register-form') handleRegister(e); }); }
-function initializeApp() { lessonView = document.getElementById('lesson-view'); subjectsGrid = document.getElementById('subjects-grid'); token = localStorage.getItem('token'); userId = localStorage.getItem('userId'); setupEventListeners(); if (token && userId) { showView('subjects-view'); fetchSubjects(); fetchReinforcementLessons(); setupUserArea(); } else { showView('login-view'); const ua = document.getElementById('user-area'); if (ua) ua.innerHTML = '<button id="login-button">Entrar</button>'; } }
+// =================================================================================
+// SUBSTITUA A SUA FUNÇÃO setupEventListeners PELA VERSÃO ABAIXO
+// =================================================================================
+
+function setupEventListeners() {
+    document.body.addEventListener('click', (e) => {
+        const target = e.target;
+        const targetId = target.id;
+
+        // --- LÓGICA EXISTENTE (NÃO MEXER) ---
+        if (targetId === 'show-register') { e.preventDefault(); showView('register-view'); }
+        if (targetId === 'show-login') { e.preventDefault(); showView('login-view'); }
+        if (targetId === 'login-button') { showView('login-view'); }
+        if (target.classList.contains('start-lesson-btn')) { renderLessonContent(target.dataset.lessonId); }
+        
+        const reinforcementCard = target.closest('.reinforcement-card');
+        if (reinforcementCard && reinforcementCard.dataset.lessonId) {
+            renderReinforcementLesson(reinforcementCard.dataset.lessonId);
+        }
+
+        // --- LÓGICA DO SCORE E CERTIFICADO (CORRIGIDA E COMPLETA) ---
+        
+        // Botão "Meu Score" no cabeçalho
+        if (targetId === 'score-toggle-btn') {
+            const panel = document.getElementById('score-panel');
+            if (panel) {
+                panel.classList.toggle('visible');
+                if (panel.classList.contains('visible')) {
+                    updateScores();
+                }
+            }
+        }
+
+        // Botão "Meus Certificados" no cabeçalho
+        if (targetId === 'my-certs-btn') {
+            loadCertificates();
+        }
+
+        // Card de um certificado específico na lista
+        const certCard = target.closest('.certificate-card');
+        if (certCard && certCard.dataset.certData) {
+            showCertificate(JSON.parse(certCard.dataset.certData));
+        }
+        
+        // Botão de fechar o modal do certificado
+        if (target.id === 'close-modal-btn') {
+            const modal = document.getElementById('certificate-modal');
+            if (modal) modal.classList.remove('visible');
+        }
+    });
+
+    // Ouvinte para os formulários
+    document.body.addEventListener('submit', (e) => {
+        if (e.target.id === 'login-form') { handleLogin(e); }
+        if (e.target.id === 'register-form') { handleRegister(e); }
+    });
+}
