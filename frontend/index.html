@@ -111,5 +111,28 @@
     </script>
     <!-- FIM: CÓDIGO DO WIDGET KO-FI -->
 
+    <!-- INÍCIO: NOSSA CORREÇÃO DE ESTILO COM JAVASCRIPT -->
+    <script>
+      // Esta função espera que o botão do Ko-fi exista antes de tentar estilizá-lo.
+      function positionKofiButton() {
+        const kofiButton = document.querySelector('div.kofi-widget-container');
+
+        if (kofiButton) {
+          // Se o botão foi encontrado, aplica os estilos diretamente.
+          // Isso sobrescreve qualquer estilo que o script do Ko-fi tenha aplicado.
+          kofiButton.style.setProperty('left', 'auto', 'important');
+          kofiButton.style.setProperty('right', '20px', 'important');
+          kofiButton.style.setProperty('bottom', '20px', 'important');
+        } else {
+          // Se o botão ainda não foi criado, tenta novamente em 100 milissegundos.
+          setTimeout(positionKofiButton, 100);
+        }
+      }
+      
+      // Inicia o processo de verificação.
+      positionKofiButton();
+    </script>
+    <!-- FIM: NOSSA CORREÇÃO -->
+
 </body>
 </html>

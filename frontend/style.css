@@ -389,17 +389,3 @@ input[type="text"], input[type="password"] {
     opacity: 0.9;
 }
 
-
-/* ======================================================== */
-/* AJUSTE DE POSICIONAMENTO DO WIDGET DO KO-FI            */
-/* ======================================================== */
-
-/* O seletor 'div.kofi-widget-container' mira o container do botão Ko-fi */
-body div.kofi-widget-container {
-    /* Move para o canto direito */
-    left: auto !important;
-    right: 20px !important;
-
-    /* Adiciona um respiro da borda inferior */
-    bottom: 20px !important; 
-}
