@@ -395,7 +395,7 @@ input[type="text"], input[type="password"] {
 /* ======================================================== */
 
 /* O seletor 'div.kofi-widget-container' mira o container do botão Ko-fi */
-div.kofi-widget-container {
+body div.kofi-widget-container {
     /* Move para o canto direito */
     left: auto !important;
     right: 20px !important;
