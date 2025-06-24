@@ -6,6 +6,24 @@ const authRoutes = require('./routes/auth');
 const contentRoutes = require('./routes/content');
 const adminRoutes = require('./routes/admin');
 const app = express();
+const allowedOrigins = [
+    'https://projetosapiens.onrender.com', // Sua nova URL do frontend
+    // Você pode adicionar outras URLs aqui se precisar, como http://localhost:xxxx para testes locais
+];
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Permite requisições sem 'origin' (como apps mobile ou Postman) ou se a origem estiver na lista
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    }
+};
+
+app.use(cors(corsOptions)); // A nova configuração
+app.options('*', cors(corsOptions)); // Aplica também para requisições 'OPTIONS'
 app.use(cors());
 app.options('*', cors());
 app.use(express.json());
