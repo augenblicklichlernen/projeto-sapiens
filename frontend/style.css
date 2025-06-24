@@ -289,20 +289,30 @@ input[type="text"], input[type="password"] {
 }
 
 /* --- Estilo do Modal do Certificado --- */
+/* ======================================================= */
+/* ESTILO DO MODAL DO CERTIFICADO - VERSÃO CORRIGIDA FINAL */
+/* ======================================================= */
 #certificate-modal {
-    position: fixed; top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background-color: rgba(26, 26, 26, 0.9); /* Fundo escuro BEM opaco */
-    display: none; /* Começa escondido */
+    position: fixed; 
+    top: 0; 
+    left: 0;
+    width: 100vw; 
+    height: 100vh;
+    background-color: rgba(26, 26, 26, 0.9);
+    display: none; /* Começa escondido por padrão */
     justify-content: center;
     align-items: center;
     z-index: 1000;
     padding: 20px;
     box-sizing: border-box;
 }
+
+/* ESTA É A REGRA QUE FAZ A MÁGICA ACONTECER */
 #certificate-modal.visible {
-    display: flex; /* Mostra o modal */
+    display: flex !important; /* Força a exibição do modal */
 }
+
+/* O resto dos estilos do conteúdo do certificado podem continuar como estão */
 
 /* --- Estilo do Conteúdo do Certificado (O "Papel") --- */
 #certificate-content {
