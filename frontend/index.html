@@ -17,9 +17,8 @@
 
     <!-- NOVO AGRUPADOR PARA OS ITENS DA DIREITA -->
     <div class="header-right-group">
-<!-- BOTÃO DE DOAÇÃO (NOVO) -->
-        <button id="donate-button" class="donate-btn">Apoie o Projeto</button>
 
+        
         <div id="user-area">
             <button id="login-button">Entrar</button>
         </div>
@@ -112,22 +111,16 @@
     </div>
     <!-- FIM DA SEÇÃO DE CERTIFICADOS -->
 
-<!-- MODAL DE DOAÇÃO (NOVO) -->
-    <div id="donate-modal" class="modal-overlay" style="display:none;">
-        <div class="modal-content">
-            <button class="close-modal-btn" data-modal-id="donate-modal">X</button>
-            <h2>Ajude a manter o projeto no ar!</h2>
-            <p>Sua doação é muito importante para nós.</p>
-            
-            <!-- Substitua 'qr-code-pix.png' pelo nome real do seu arquivo de imagem -->
-            <img src="/Assets/qr-code-pix.png" alt="QR Code para doação via PIX" class="qr-code-img">
-            
-            <p class="pix-instructions">Escaneie o QR Code acima com o app do seu banco para fazer uma doação via PIX.</p>
-        </div>
-    </div>
-    <!-- FIM DO MODAL DE DOAÇÃO -->
-
 
     <script src="script.js"></script>
+
+    <!-- INÍCIO: CÓDIGO DO WIDGET KO-FI -->
+    <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
+    <script type='text/javascript'>
+      kofiwidget2.init('Apoie o projeto', '#72a4f2', 'E1E41GY3W7');
+      kofiwidget2.draw();
+    </script>
+    <!-- FIM: CÓDIGO DO WIDGET KO-FI -->
+
 </body>
 </html>
