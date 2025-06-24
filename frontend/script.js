@@ -1,11 +1,11 @@
 // ========================================================================
-// SCRIPT.JS - VERSÃO COMPLETA E CORRIGIDA
+// SCRIPT.JS - VERSÃO COMPLETA E COM SINTAXE CORRIGIDA
 // ========================================================================
 
 const API_URL = 'https://sapiens-backend-ogz2.onrender.com';
 let token, userId, ytPlayer, lessonView, subjectsGrid;
 
-// FUNÇÃO PRINCIPAL QUE INICIA O APP (ESTAVA FALTANDO)
+// FUNÇÃO PRINCIPAL QUE INICIA O APP
 function initializeApp() {
     token = localStorage.getItem('token');
     userId = localStorage.getItem('userId');
@@ -13,18 +13,15 @@ function initializeApp() {
     lessonView = document.getElementById('lesson-view');
     subjectsGrid = document.getElementById('subjects-grid');
 
-    // Sempre configure os ouvintes de evento para a página ser interativa
     setupEventListeners();
 
     if (token && userId) {
-        // Se o usuário está logado
         setupUserArea();
         updateScores();
         fetchSubjects();
         fetchReinforcementLessons();
         showView('subjects-view');
     } else {
-        // Se não está logado
         document.getElementById('user-area').innerHTML = `<button id="login-button">Entrar</button>`;
         document.getElementById('score-bar-container').style.display = 'none';
         const certsBtn = document.getElementById('my-certs-btn');
@@ -33,9 +30,7 @@ function initializeApp() {
     }
 }
 
-// OUVINTE DE EVENTO QUE CHAMA A FUNÇÃO PRINCIPAL (AGORA FUNCIONA)
 document.addEventListener('DOMContentLoaded', initializeApp);
-
 
 // --- RESTANTE DAS FUNÇÕES DO SEU CÓDIGO ---
 
@@ -57,16 +52,18 @@ async function renderQuiz(lesson) { fetch(`${API_URL}/api/content/unlock-reinfor
 async function renderReinforcementLesson(id) { if (!lessonView) return; showView('lesson-view'); lessonView.innerHTML = `<h2>Carregando...</h2>`; try { const res = await fetch(`${API_URL}/api/content/reinforcement-lesson/${id}`); if (!res.ok) throw new Error("Falha ao carregar reforço."); const rfL = await res.json(); const c = rfL.content; let html = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar</button><h2>Reforço: ${rfL.title}</h2>`; if (c.video_url) html += `<iframe width="100%" height="480" src="${c.video_url.replace('watch?v=', 'embed/')}" frameborder="0" allowfullscreen></iframe>`; if (c.image_url) html += `<img src="${c.image_url}" alt="Reforço">`; if (c.audio_url) html += `<audio controls src="${c.audio_url}"></audio>`; if (c.text) html += `<div>${c.text}</div>`; if (c.questions?.length) { html += `<hr><h3>Questões de Treino</h3>`; c.questions.forEach((q, i) => { html += `<div class="quiz-question" data-correct-answer="${q.options[0]}"><h4>Questão ${i+1}</h4><p>${q.text}</p><div class="options-container">${[...q.options].sort(()=>.5-Math.random()).map(o=>`<button class="option-btn">${o}</button>`).join('')}</div><div class="rf-feedback"></div></div>`; }); } lessonView.innerHTML = html; lessonView.querySelectorAll('.quiz-question .option-btn').forEach(b => b.addEventListener('click', () => { const qb = b.closest('.quiz-question'), ca = qb.dataset.correctAnswer, sa = b.textContent, f = qb.querySelector('.rf-feedback'); qb.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true); if (sa === ca) { b.classList.add('correct'); f.textContent = 'Correto!'; f.className = 'rf-feedback correct'; } else { b.classList.add('incorrect'); f.textContent = `Incorreto. Resposta: ${ca}`; f.className = 'rf-feedback incorrect'; } f.style.display = 'block'; })); } catch (err) { lessonView.innerHTML = `<h2>Erro ao carregar.</h2>`; } }
 function showReinforcementToast(title) { let t = document.getElementById('reinforcement-toast'); if (!t) { t = document.createElement('div'); t.id = 'reinforcement-toast'; document.body.appendChild(t); } t.textContent = `Reforço desbloqueado: ${title}!`; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 5000); }
 async function handleSubjectFinished(id) { const name = prompt("Parabéns! Você concluiu a matéria!\nInsira seu nome completo para o certificado:", ""); if (name?.trim() && name.length <= 40) { try { await fetch(`${API_URL}/api/content/generate-certificate`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ userId, subjectId: id, fullName: name.trim() }) }); alert('Certificado gerado!'); loadLessons(id); } catch (err) { alert("Erro ao gerar certificado."); } } else if (name) alert("Nome inválido."); }
-async function loadCertificates() { showView('certificates-view'); const list = document.getElementById('certificates-list'); list.innerHTML = 'Carregando...'; try { const res = await fetch(`${API_URL}/api/content/certificates/user/${userId}`, { headers: { Authorization: `Bearer ${token}` } }); const certs = await res.json(); list.innerHTML = ''; if (certs.length === 0) { list.innerHTML = '<p>Nenhum certificado.</p>'; return; } certs.forEach(c => { const i = document.createElement('div'); i.className = 'subject-card certificate-card'; i.innerHTML = `<h3>Certificado: ${c.subject_name}</h3>`; i.dataset.certData = JSON.stringify(c); list.appendChild(i); }); } catch (e) { list.innerHTML = 'Erro ao carregar.'; } 
-console.log("1. Iniciando loadCertificates()...");
-    // ... resto da função ...
+
+// *** CORREÇÃO APLICADA AQUI ***
+async function loadCertificates() {
+    showView('certificates-view');
+    const list = document.getElementById('certificates-list');
+    list.innerHTML = 'Carregando...';
     try {
         const res = await fetch(`${API_URL}/api/content/certificates/user/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
         const certs = await res.json();
-        console.log("2. Backend respondeu com:", certs); // VEJA O QUE O BACKEND ENVIOU
         list.innerHTML = '';
         if (certs.length === 0) {
-            // ...
+            list.innerHTML = '<p>Nenhum certificado.</p>';
             return;
         }
         certs.forEach(c => {
@@ -76,22 +73,15 @@ console.log("1. Iniciando loadCertificates()...");
             i.dataset.certData = JSON.stringify(c);
             list.appendChild(i);
         });
-        console.log("3. Cards de certificado criados no HTML.");
+    } catch (e) { // O bloco CATCH estava faltando
+        console.error("Erro ao carregar certificados:", e);
+        list.innerHTML = 'Erro ao carregar.';
     }
 }
-function showCertificate(cert) { const modal = document.getElementById('certificate-modal'); const content = document.getElementById('certificate-content'); content.innerHTML = `<div id="certificate-text"><p>Certificado de Conclusão</p><p>Certificamos que</p><p><strong>${cert.full_name}</strong></p><p>concluiu com sucesso a matéria <strong>${cert.subject_name}</strong>.</p><p>Total de Lições: ${cert.total_lessons}</p><p style="font-size: 2rem; margin-top: 15px;">🏅</p></div><button id="print-cert-btn" title="Imprimir Certificado">🖨️</button><button id="close-modal-btn" title="Fechar">X</button>`; content.querySelector('#print-cert-btn').addEventListener('click', () => window.print()); content.querySelector('#close-modal-btn').addEventListener('click', () => { modal.classList.remove('visible'); }); modal.classList.add('visible'); console.log("5. Função showCertificate() foi chamada com os dados:", cert); }
+
+function showCertificate(cert) { const modal = document.getElementById('certificate-modal'); const content = document.getElementById('certificate-content'); content.innerHTML = `<div id="certificate-text"><p>Certificado de Conclusão</p><p>Certificamos que</p><p><strong>${cert.full_name}</strong></p><p>concluiu com sucesso a matéria <strong>${cert.subject_name}</strong>.</p><p>Total de Lições: ${cert.total_lessons}</p><p style="font-size: 2rem; margin-top: 15px;">🏅</p></div><button id="print-cert-btn" title="Imprimir Certificado">🖨️</button><button id="close-modal-btn" title="Fechar">X</button>`; content.querySelector('#print-cert-btn').addEventListener('click', () => window.print()); content.querySelector('#close-modal-btn').addEventListener('click', () => { modal.classList.remove('visible'); }); modal.classList.add('visible'); }
 
 // =================================================================================
 // VERSÃO FINAL E CORRIGIDA DA SUA FUNÇÃO DE EVENTOS
 // =================================================================================
-function setupEventListeners() { document.body.addEventListener('click', (e) => { const target = e.target; const targetId = target.id; if (targetId === 'show-register') { e.preventDefault(); showView('register-view'); } if (targetId === 'show-login') { e.preventDefault(); showView('login-view'); } if (targetId === 'login-button') { showView('login-view'); } if (target.classList.contains('start-lesson-btn')) { renderLessonContent(target.dataset.lessonId); } const reinforcementCard = target.closest('.reinforcement-card'); if (reinforcementCard && reinforcementCard.dataset.lessonId) { renderReinforcementLesson(reinforcementCard.dataset.lessonId); } if (targetId === 'score-toggle-btn') { const panel = document.getElementById('score-panel'); if (panel) { panel.classList.toggle('visible'); if (panel.classList.contains('visible')) { updateScores(); } } } if (targetId === 'my-certs-btn') { loadCertificates(); } const certCard = target.closest('.certificate-card'); if (certCard && certCard.dataset.certData) { showCertificate(JSON.parse(certCard.dataset.certData)); } if (targetId === 'certificate-modal' && target.classList.contains('visible')) { target.classList.remove('visible'); } }); document.body.addEventListener('submit', (e) => { if (e.target.id === 'login-form') { handleLogin(e); } if (e.target.id === 'register-form') { handleRegister(e); } }); 
-console.log("Iniciando setupEventListeners(). A página está pronta para interatividade.");
-    document.body.addEventListener('click', (e) => {
-        // ...
-        
-        const certCard = e.target.closest('.certificate-card');
-        if (certCard && certCard.dataset.certData) {
-            console.log("4. Clique detectado em um card de certificado!"); // VEJA SE O CLIQUE É REGISTRADO
-            showCertificate(JSON.parse(certCard.dataset.certData)); 
-}
-}
+function setupEventListeners() { document.body.addEventListener('click', (e) => { const target = e.target; const targetId = target.id; if (targetId === 'show-register') { e.preventDefault(); showView('register-view'); } if (targetId === 'show-login') { e.preventDefault(); showView('login-view'); } if (targetId === 'login-button') { showView('login-view'); } if (target.classList.contains('start-lesson-btn')) { renderLessonContent(target.dataset.lessonId); } const reinforcementCard = target.closest('.reinforcement-card'); if (reinforcementCard && reinforcementCard.dataset.lessonId) { renderReinforcementLesson(reinforcementCard.dataset.lessonId); } if (targetId === 'score-toggle-btn') { const panel = document.getElementById('score-panel'); if (panel) { panel.classList.toggle('visible'); if (panel.classList.contains('visible')) { updateScores(); } } } if (targetId === 'my-certs-btn') { loadCertificates(); } const certCard = target.closest('.certificate-card'); if (certCard && certCard.dataset.certData) { showCertificate(JSON.parse(certCard.dataset.certData)); } if (targetId === 'certificate-modal' && target.classList.contains('visible')) { target.classList.remove('visible'); } }); document.body.addEventListener('submit', (e) => { if (e.target.id === 'login-form') { handleLogin(e); } if (e.target.id === 'register-form') { handleRegister(e); } }); }
