@@ -409,3 +409,24 @@ input[type="text"], input[type="password"] {
     margin-bottom: 20px;
 }
 
+/* ======================================================== */
+/* FUNDO TEMÁTICO PARA A TELA DE MATÉRIAS                  */
+/* ======================================================== */
+
+#subjects-view.active {
+    /* Define a imagem de fundo */
+    background-image: url('/Assets/books-pattern.png'); /* Substitua pelo nome do seu arquivo */
+    
+    /* Faz a imagem se repetir para preencher todo o espaço */
+    background-repeat: repeat;
+
+    /* Adiciona um preenchimento interno para o conteúdo não ficar colado nas bordas */
+    padding: 30px;
+
+    /* Arredonda as bordas da "página" de matérias */
+    border-radius: var(--border-radius);
+
+    /* Adiciona um fundo branco semi-transparente por baixo da imagem do padrão */
+    /* Isso garante que o padrão não fique muito forte e que o texto continue legível */
+    background-color: rgba(255, 255, 255, 0.8);
+}
