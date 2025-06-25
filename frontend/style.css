@@ -15,6 +15,11 @@ body {
     margin: 0;
     padding: 20px;
     box-sizing: border-box;
+
+/* ADICIONE ESTA LINHA PARA CRIAR ESPAÇO INFERIOR */
+    padding-bottom: 80px; /* 80px é um bom valor inicial, ajuste se necessário */
+    
+    box-sizing: border-box;
 }
 
 header {
