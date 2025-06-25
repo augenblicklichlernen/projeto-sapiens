@@ -394,3 +394,18 @@ input[type="text"], input[type="password"] {
     opacity: 0.9;
 }
 
+/* ======================================================== */
+/* ESTILOS DA VISUALIZAÇÃO DA LIÇÃO (MELHORIAS)           */
+/* ======================================================== */
+
+#lesson-view #post-video-content img {
+    display: block;      /* Essencial para que a margem automática funcione */
+    margin-left: auto;   /* Margem esquerda automática */
+    margin-right: auto;  /* Margem direita automática */
+    max-width: 80%;      /* Evita que a imagem fique grande demais em telas largas */
+    border-radius: var(--border-radius); /* Adiciona bordas arredondadas para combinar */
+    border: 2px solid var(--border-color); /* Adiciona uma borda para combinar */
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
