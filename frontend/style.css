@@ -410,23 +410,29 @@ input[type="text"], input[type="password"] {
 }
 
 /* ======================================================== */
-/* FUNDO TEMÁTICO PARA A TELA DE MATÉRIAS                  */
+/* FUNDO TEMÁTICO PARA A TELA DE MATÉRIAS (COM OPACIDADE)  */
 /* ======================================================== */
 
 #subjects-view.active {
-    /* Define a imagem de fundo */
-    background-image: url('/Assets/books-pattern.png'); /* Substitua pelo nome do seu arquivo */
-    
-    /* Faz a imagem se repetir para preencher todo o espaço */
-    background-repeat: repeat;
-
-    /* Adiciona um preenchimento interno para o conteúdo não ficar colado nas bordas */
+    position: relative; /* Essencial para o posicionamento do pseudo-elemento */
+    background-color: #fff; /* Um fundo branco sólido para garantir a legibilidade */
     padding: 30px;
-
-    /* Arredonda as bordas da "página" de matérias */
     border-radius: var(--border-radius);
+    z-index: 1; /* Garante que o conteúdo fique na camada correta */
+}
 
-    /* Adiciona um fundo branco semi-transparente por baixo da imagem do padrão */
-    /* Isso garante que o padrão não fique muito forte e que o texto continue legível */
-    background-color: rgba(255, 255, 255, 0.8);
+#subjects-view.active::before {
+    content: ''; /* Pseudo-elementos precisam desta propriedade */
+    position: absolute; /* Posiciona a camada em relação à #subjects-view */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    
+    /* A MÁGICA ACONTECE AQUI */
+    background-image: url('/Assets/books-pattern.png'); /* Sua imagem de padrão */
+    opacity: 0.1; /* <-- CONTROLE A TRANSPARÊNCIA AQUI (0.1 = 10% de opacidade) */
+
+    z-index: -1; /* Envia a camada do fundo para TRÁS do conteúdo */
+    border-radius: var(--border-radius); /* Garante que as bordas arredondadas se apliquem ao fundo também */
 }
