@@ -436,3 +436,15 @@ input[type="text"], input[type="password"] {
     z-index: -1; /* Envia a camada do fundo para TRÁS do conteúdo */
     border-radius: var(--border-radius); /* Garante que as bordas arredondadas se apliquem ao fundo também */
 }
+
+/* Classe de utilidade para esconder elementos */
+.hidden {
+    display: none !important;
+}
+
+/* Garante que o texto e o botão de sair fiquem alinhados */
+#logged-in-view {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}

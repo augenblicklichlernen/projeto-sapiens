@@ -19,9 +19,18 @@
     <div class="header-right-group">
 
         
-        <div id="user-area">
-            <button id="login-button">Entrar</button>
-        </div>
+<div id="user-area">
+    <!-- Visível apenas quando o usuário está DESLOGADO -->
+    <div id="logged-out-view">
+        <button id="login-button">Entrar</button>
+    </div>
+
+    <!-- Visível apenas quando o usuário está LOGADO (começa escondido) -->
+    <div id="logged-in-view" class="hidden">
+        <span id="username-display"></span>
+        <button id="logout-button">Sair</button>
+    </div>
+</div>
 
         <div id="score-bar-container" style="display: none;">
             <button id="score-toggle-btn">Meu Score</button>
