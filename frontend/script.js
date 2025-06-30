@@ -77,7 +77,7 @@ function updateUIBasedOnLogin() {
 }
 
 // ------------------------------------------------------------------------
-// 4. LÓGICA DE AUTENTICAÇÃO
+// 4. LÓGICA DE AUTENTICAÇÃO E CONTA
 // ------------------------------------------------------------------------
 
 async function handleLogin(e) {
@@ -111,6 +111,30 @@ async function handleRegister(e) {
         showView('login-view');
     } catch (err) {
         alert(`Erro no registro: ${err.message}`);
+    }
+}
+
+async function deleteUserAccount() {
+    try {
+        const res = await fetch(`${API_URL}/api/auth/me`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+                forceLogout("Não foi possível verificar sua identidade. Por favor, faça o login novamente.");
+                return;
+            }
+            throw new Error('Falha ao excluir a conta.');
+        }
+
+        forceLogout("Sua conta foi excluída com sucesso.");
+
+    } catch (err) {
+        alert(`Erro: ${err.message}`);
     }
 }
 
@@ -282,7 +306,6 @@ async function updateScores() {
 }
 
 async function renderQuiz(lesson) {
-    // Dispara o desbloqueio da lição de reforço (não precisa de tratamento de erro crítico)
     fetch(`${API_URL}/api/content/unlock-reinforcement`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -321,22 +344,14 @@ async function renderQuiz(lesson) {
         }
     }
     async function renderQ2() {
-        // =========================================================
-        // AQUI ESTÁ A ATUALIZAÇÃO DA CHAMADA DA API
-        // =========================================================
         const pRes = await fetch(`${API_URL}/api/content/start-lesson`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ lessonId: lesson.id })
         });
 
         if (!pRes.ok) {
-            if (pRes.status === 401 || pRes.status === 403) {
-                return forceLogout("Esta conta não possui mais acesso a este site.");
-            }
+            if (pRes.status === 401 || pRes.status === 403) return forceLogout("Esta conta não possui mais acesso a este site.");
             return alert('Erro de comunicação.');
         }
 
@@ -372,11 +387,11 @@ async function renderQuiz(lesson) {
     renderQ1();
 }
 
-async function fetchReinforcementLessons() { const rs = document.getElementById('reinforcement-section'), rl = document.getElementById('reinforcement-list'); if (!rs || !rl) return; try { const res = await fetch(`${API_URL}/api/content/reinforcement/user`, { headers: { Authorization: `Bearer ${token}` } }); const lessons = await res.json(); if (lessons.length > 0) { rs.style.display = 'block'; rl.innerHTML = ''; lessons.forEach(l => { const c = document.createElement('div'); c.className = 'subject-card reinforcement-card'; c.style.borderColor = '#4299e1'; c.innerHTML = `<h3>${l.title}</h3>`; c.dataset.lessonId = l.id; rl.appendChild(c); }); } else { rs.style.display = 'none'; } } catch (err) { console.error("Erro ao buscar reforço:", err); } }
+async function fetchReinforcementLessons() { const rs = document.getElementById('reinforcement-section'), rl = document.getElementById('reinforcement-list'); if (!rs || !rl) return; try { const res = await fetch(`${API_URL}/api/content/reinforcement/user`, { headers: { Authorization: `Bearer ${token}` } }); if (!res.ok) { if(res.status === 401 || res.status === 403) return forceLogout(); throw new Error(); } const lessons = await res.json(); if (lessons.length > 0) { rs.style.display = 'block'; rl.innerHTML = ''; lessons.forEach(l => { const c = document.createElement('div'); c.className = 'subject-card reinforcement-card'; c.style.borderColor = '#4299e1'; c.innerHTML = `<h3>${l.title}</h3>`; c.dataset.lessonId = l.id; rl.appendChild(c); }); } else { rs.style.display = 'none'; } } catch (err) { console.error("Erro ao buscar reforço:", err); } }
 async function renderReinforcementLesson(id) { if (!lessonView) return; showView('lesson-view'); lessonView.innerHTML = `<h2>Carregando...</h2>`; try { const res = await fetch(`${API_URL}/api/content/reinforcement-lesson/${id}`); if (!res.ok) throw new Error("Falha ao carregar reforço."); const rfL = await res.json(); if(!rfL) { alert("Esta lição de reforço não está mais disponível."); return showView('subjects-view'); } const c = rfL.content; let html = `<button class="back-btn" onclick="showView('subjects-view')">← Voltar</button><h2>Reforço: ${rfL.title}</h2>`; if (c.video_url) html += `<iframe width="100%" height="480" src="${c.video_url.replace('watch?v=', 'embed/')}" frameborder="0" allowfullscreen></iframe>`; if (c.image_url) html += `<img src="${c.image_url}" alt="Reforço">`; if (c.audio_url) html += `<audio controls src="${c.audio_url}"></audio>`; if (c.text) html += `<div>${c.text}</div>`; if (c.questions?.length) { html += `<hr><h3>Questões de Treino</h3>`; c.questions.forEach((q, i) => { html += `<div class="quiz-question" data-correct-answer="${q.options[0]}"><h4>Questão ${i+1}</h4><p>${q.text}</p><div class="options-container">${[...q.options].sort(()=>.5-Math.random()).map(o=>`<button class="option-btn">${o}</button>`).join('')}</div><div class="rf-feedback"></div></div>`; }); } lessonView.innerHTML = html; lessonView.querySelectorAll('.quiz-question .option-btn').forEach(b => b.addEventListener('click', () => { const qb = b.closest('.quiz-question'), ca = qb.dataset.correctAnswer, sa = b.textContent, f = qb.querySelector('.rf-feedback'); qb.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true); if (sa === ca) { b.classList.add('correct'); f.textContent = 'Correto!'; f.className = 'rf-feedback correct'; } else { b.classList.add('incorrect'); f.textContent = `Incorreto. Resposta: ${ca}`; f.className = 'rf-feedback incorrect'; } f.style.display = 'block'; })); } catch (err) { lessonView.innerHTML = `<h2>Erro ao carregar.</h2>`; } }
 function showReinforcementToast(title) { let t = document.getElementById('reinforcement-toast'); if (!t) { t = document.createElement('div'); t.id = 'reinforcement-toast'; document.body.appendChild(t); } t.textContent = `Reforço desbloqueado: ${title}!`; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 5000); }
 async function handleSubjectFinished(id) { const name = prompt("Parabéns! Você concluiu a matéria!\nInsira seu nome completo para o certificado:", ""); if (name?.trim() && name.length <= 40) { try { await fetch(`${API_URL}/api/content/generate-certificate`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ subjectId: id, fullName: name.trim() }) }); alert('Certificado gerado!'); loadLessons(id); } catch (err) { alert("Erro ao gerar certificado."); } } else if (name) { alert("Nome inválido."); } }
-async function loadCertificates() { showView('certificates-view'); const list = document.getElementById('certificates-list'); list.innerHTML = 'Carregando...'; try { const res = await fetch(`${API_URL}/api/content/certificates/user`, { headers: { Authorization: `Bearer ${token}` } }); const certs = await res.json(); list.innerHTML = ''; if (certs.length === 0) { list.innerHTML = '<p>Nenhum certificado.</p>'; return; } certs.forEach(c => { const i = document.createElement('div'); i.className = 'subject-card certificate-card'; i.innerHTML = `<h3>Certificado: ${c.subject_name}</h3>`; i.dataset.certData = JSON.stringify(c); list.appendChild(i); }); } catch (e) { console.error("Erro ao carregar certificados:", e); list.innerHTML = 'Erro ao carregar.'; } }
+async function loadCertificates() { showView('certificates-view'); const list = document.getElementById('certificates-list'); list.innerHTML = 'Carregando...'; try { const res = await fetch(`${API_URL}/api/content/certificates/user`, { headers: { Authorization: `Bearer ${token}` } }); if (!res.ok) { if(res.status === 401 || res.status === 403) return forceLogout(); throw new Error(); } const certs = await res.json(); list.innerHTML = ''; if (certs.length === 0) { list.innerHTML = '<p>Nenhum certificado.</p>'; return; } certs.forEach(c => { const i = document.createElement('div'); i.className = 'subject-card certificate-card'; i.innerHTML = `<h3>Certificado: ${c.subject_name}</h3>`; i.dataset.certData = JSON.stringify(c); list.appendChild(i); }); } catch (e) { console.error("Erro ao carregar certificados:", e); list.innerHTML = 'Erro ao carregar.'; } }
 function showCertificate(cert) { const modal = document.getElementById('certificate-modal'); const content = document.getElementById('certificate-content'); if (!modal) { return; } content.innerHTML = `<div id="certificate-text"><p>Certificado de Conclusão</p><p>Certificamos que</p><p><strong>${cert.full_name}</strong></p><p>concluiu com sucesso a matéria <strong>${cert.subject_name}</strong>.</p><p>Total de Lições: ${cert.total_lessons}</p><p style="font-size: 2rem; margin-top: 15px;">🏅</p></div><button id="print-cert-btn" title="Imprimir Certificado">🖨️</button><button id="close-modal-btn" title="Fechar">X</button>`; content.querySelector('#print-cert-btn').addEventListener('click', () => window.print()); content.querySelector('#close-modal-btn').addEventListener('click', () => { modal.classList.remove('visible'); }); modal.classList.add('visible'); }
 
 // ------------------------------------------------------------------------
@@ -388,13 +403,29 @@ function setupEventListeners() {
         const target = e.target;
         const targetId = target.id;
 
+        // Ações de Autenticação e Conta
         if (targetId === 'logout-button') forceLogout();
         if (targetId === 'login-button') showView('login-view');
+        if (targetId === 'delete-account-btn') {
+            const confirm1 = confirm("Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.");
+            if (confirm1) {
+                const confirm2 = confirm("Toda a sua progressão e certificados serão perdidos para sempre. Confirma a exclusão?");
+                if (confirm2) {
+                    deleteUserAccount();
+                }
+            }
+        }
+        
+        // Navegação de Views
         if (targetId === 'show-register') { e.preventDefault(); showView('register-view'); }
         if (targetId === 'show-login') { e.preventDefault(); showView('login-view'); }
+
+        // Ações de Conteúdo
         if (target.classList.contains('start-lesson-btn')) renderLessonContent(target.dataset.lessonId);
         const reinforcementCard = target.closest('.reinforcement-card');
         if (reinforcementCard) renderReinforcementLesson(reinforcementCard.dataset.lessonId);
+        
+        // Ações de UI
         if (targetId === 'score-toggle-btn') {
             const panel = document.getElementById('score-panel');
             if (panel) panel.classList.toggle('visible');

@@ -453,3 +453,8 @@ input[type="text"], input[type="password"] {
 main#app-content {
     padding-bottom: 50px; /* Ajuste o valor se desejar mais ou menos espaço */
 }
+
+.danger-btn {
+    background-color: #e53e3e !important; /* Vermelho */
+    border-color: #9b2c2c !important;
+}
