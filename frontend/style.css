@@ -448,3 +448,8 @@ input[type="text"], input[type="password"] {
     align-items: center;
     gap: 10px;
 }
+
+/* Garante um espaço inferior em todas as views principais */
+main#app-content {
+    padding-bottom: 50px; /* Ajuste o valor se desejar mais ou menos espaço */
+}
